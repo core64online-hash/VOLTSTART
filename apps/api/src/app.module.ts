@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
+import { ZodExceptionFilter } from './common/filters/zod-exception.filter';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './modules/health/health.module';
@@ -28,5 +30,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     CrmModule,
     NotificationsModule,
   ],
+  // Глобально: помилки валідації zod → 400 (а не 500).
+  providers: [{ provide: APP_FILTER, useClass: ZodExceptionFilter }],
 })
 export class AppModule {}
