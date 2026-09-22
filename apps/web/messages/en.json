@@ -8,7 +8,8 @@
     "selector": "Selector",
     "b2b": "For business",
     "contacts": "Contacts",
-    "account": "Account"
+    "account": "Account",
+    "cart": "Cart"
   },
   "hero": {
     "title": "A generator for any equipment",
@@ -140,6 +141,58 @@
       "verifiedYes": "Verified",
       "verifiedNo": "Pending verification",
       "logout": "Sign out"
+    }
+  },
+  "cart": {
+    "title": "Cart",
+    "loading": "Loading cart…",
+    "empty": "Your cart is empty.",
+    "toCatalog": "← Back to catalog",
+    "add": "Add to cart",
+    "adding": "Adding…",
+    "added": "Added",
+    "goToCart": "go to cart",
+    "qty": "Quantity",
+    "remove": "Remove",
+    "error": "Something went wrong. Please try again.",
+    "unavailable": "not available for your segment — remove it to check out",
+    "delivery": "Delivery",
+    "deliveryMethods": {
+      "PICKUP": "Warehouse pickup",
+      "NOVA_POSHTA": "Nova Poshta (150 UAH, free from 10,000 UAH)",
+      "COURIER": "Courier (400 UAH, free from 30,000 UAH)"
+    },
+    "totals": {
+      "items": "Items",
+      "delivery": "Delivery",
+      "free": "free",
+      "vat": "incl. VAT",
+      "total": "Total"
+    },
+    "checkout": {
+      "title": "Checkout",
+      "name": "Full name",
+      "phone": "Phone",
+      "provider": "Payment method",
+      "pay": "Proceed to payment",
+      "invoice": "Get invoice",
+      "submitting": "Placing order…",
+      "invoiceNote": "Organizations (B2B/B2G) receive an invoice payable by bank transfer."
+    },
+    "invoice": {
+      "title": "Order {number} placed",
+      "text": "Please pay the invoice using the details below. A manager will confirm the order once funds arrive.",
+      "recipient": "Recipient",
+      "edrpou": "Recipient EDRPOU",
+      "amount": "Amount",
+      "purpose": "Payment reference"
+    },
+    "result": {
+      "title": "Thank you for your order!",
+      "thanks": "Order {number} received.",
+      "thanksGeneric": "Your order has been received.",
+      "note": "Payment status updates automatically once the payment system confirms it. You'll receive an email with the details.",
+      "continue": "Continue shopping"
     }
   }
 }

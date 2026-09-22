@@ -68,6 +68,12 @@ enum PaymentProviderKind {
   BANK_INVOICE
 }
 
+enum DeliveryMethod {
+  PICKUP
+  NOVA_POSHTA
+  COURIER
+}
+
 enum PaymentStatus {
   PENDING
   SUCCEEDED
@@ -162,6 +168,7 @@ model Product {
   prices    Price[]
   inventory InventoryItem?
   orderItems OrderItem[]
+  cartItems  CartItem[]
 
   @@index([brandId])
   @@index([categoryId])
@@ -240,8 +247,10 @@ model CartItem {
   cartId    String
   cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
   productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   quantity  Int     @default(1)
 
+  @@unique([cartId, productId])
   @@index([cartId])
 }
 
@@ -257,6 +266,11 @@ model Order {
   currency    Currency    @default(UAH)
   totalMinor  Int         @default(0)
   vatMinor    Int         @default(0)
+  deliveryMethod DeliveryMethod @default(PICKUP)
+  deliveryMinor  Int         @default(0)
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -295,8 +309,18 @@ model Payment {
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
 
+  @@unique([provider, externalId])
   @@index([orderId])
-  @@index([externalId])
+}
+
+// Отримані вебхуки платіжних провайдерів — для ідемпотентної обробки.
+model WebhookEvent {
+  id         String              @id @default(cuid())
+  provider   PaymentProviderKind
+  eventId    String              // унікальний id події у провайдера
+  receivedAt DateTime            @default(now())
+
+  @@unique([provider, eventId])
 }
 
 model Invoice {
