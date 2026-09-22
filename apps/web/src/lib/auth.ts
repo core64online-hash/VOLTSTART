@@ -72,3 +72,23 @@ export async function fetchMe(token: string): Promise<AuthUser> {
   if (!res.ok) throw new Error(await parseError(res));
   return res.json();
 }
+
+/** Запит листа зі скиданням паролю (відповідь однакова для будь-якого email). */
+export async function requestPasswordReset(email: string, locale: string): Promise<void> {
+  const res = await fetch(apiUrl('/accounts/password/forgot'), {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email, locale }),
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+}
+
+/** Новий пароль за токеном із листа. */
+export async function resetPassword(token: string, password: string): Promise<void> {
+  const res = await fetch(apiUrl('/accounts/password/reset'), {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ token, password }),
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+}

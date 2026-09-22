@@ -8,6 +8,8 @@ import { ConfigService } from '@nestjs/config';
 import type { Order, Payment } from '@prisma/client';
 import type { CheckoutInput, CheckoutResult } from '@voltstar/types';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { logStatusChange } from '../orders/order-events';
 import { PaymentsService } from '../payments/payments.service';
 import type { BuyerContext } from './buyer-context';
 import { CartService } from './cart.service';
@@ -27,6 +29,7 @@ export class CheckoutService {
     private readonly prisma: PrismaService,
     private readonly carts: CartService,
     private readonly payments: PaymentsService,
+    private readonly notifications: NotificationsService,
     config: ConfigService,
   ) {
     this.allowedOrigins = (config.get<string>('API_CORS_ORIGINS') ?? 'http://localhost:3000')
@@ -96,6 +99,7 @@ export class CheckoutService {
         },
         include: { payments: true },
       });
+      await logStatusChange(tx, { orderId: created.id, from: null, to: created.status, actor: 'system:checkout' });
       await tx.cart.delete({ where: { id: cart.id } });
       return created;
     });
@@ -113,6 +117,8 @@ export class CheckoutService {
       await this.release(order, payment, cart.lines);
       throw e;
     }
+
+    void this.notifications.orderPlaced(order.number);
 
     return {
       orderId: order.id,
@@ -142,6 +148,13 @@ export class CheckoutService {
   ): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       await tx.order.update({ where: { id: order.id }, data: { status: 'CANCELLED' } });
+      await logStatusChange(tx, {
+        orderId: order.id,
+        from: order.status,
+        to: 'CANCELLED',
+        actor: 'system:checkout-rollback',
+        note: 'Платіжний сервіс недоступний',
+      });
       await tx.payment.update({ where: { id: payment.id }, data: { status: 'FAILED' } });
       for (const l of lines) {
         await tx.inventoryItem.updateMany({
