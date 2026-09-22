@@ -7,7 +7,8 @@
     "catalog": "Catalog",
     "selector": "Selector",
     "b2b": "For business",
-    "contacts": "Contacts"
+    "contacts": "Contacts",
+    "account": "Account"
   },
   "hero": {
     "title": "A generator for any equipment",
@@ -93,5 +94,52 @@
       "INVERTER": "Inverter"
     },
     "phases": { "SINGLE": "1 phase", "THREE": "3 phase" }
+  },
+  "account": {
+    "email": "Email",
+    "password": "Password",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "phone": "Phone",
+    "accountType": "Account type",
+    "orgName": "Organization name",
+    "edrpou": "EDRPOU code (8 digits)",
+    "vatNumber": "VAT / tax number",
+    "errorGeneric": "Something went wrong. Please try again.",
+    "types": {
+      "INDIVIDUAL": "Individual (B2C)",
+      "BUSINESS": "Business (B2B)",
+      "GOVERNMENT": "Government (B2G)"
+    },
+    "login": {
+      "title": "Sign in",
+      "subtitle": "Sign in to manage your orders and profile.",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "noAccount": "No account?",
+      "toRegister": "Create one"
+    },
+    "register": {
+      "title": "Sign up",
+      "subtitle": "Create an account. For B2B/B2G add your organization details.",
+      "submit": "Create account",
+      "submitting": "Creating…",
+      "haveAccount": "Already have an account?",
+      "toLogin": "Sign in"
+    },
+    "profile": {
+      "title": "Account",
+      "subtitle": "Your profile and organization details.",
+      "loading": "Loading…",
+      "pleaseLogin": "Please sign in to view your account.",
+      "loginLink": "Go to sign in",
+      "role": "Role",
+      "segment": "Segment",
+      "organization": "Organization",
+      "verified": "Verification",
+      "verifiedYes": "Verified",
+      "verifiedNo": "Pending verification",
+      "logout": "Sign out"
+    }
   }
 }
