@@ -7,7 +7,8 @@
     "catalog": "Каталог",
     "selector": "Підбір",
     "b2b": "Бізнесу",
-    "contacts": "Контакти"
+    "contacts": "Контакти",
+    "account": "Кабінет"
   },
   "hero": {
     "title": "Генератор під будь-яку техніку",
@@ -93,5 +94,52 @@
       "INVERTER": "Інверторний"
     },
     "phases": { "SINGLE": "1 фаза", "THREE": "3 фази" }
+  },
+  "account": {
+    "email": "Email",
+    "password": "Пароль",
+    "firstName": "Імʼя",
+    "lastName": "Прізвище",
+    "phone": "Телефон",
+    "accountType": "Тип акаунта",
+    "orgName": "Назва організації",
+    "edrpou": "Код ЄДРПОУ (8 цифр)",
+    "vatNumber": "VAT / ІПН",
+    "errorGeneric": "Сталася помилка. Спробуйте ще раз.",
+    "types": {
+      "INDIVIDUAL": "Приватна особа (B2C)",
+      "BUSINESS": "Бізнес (B2B)",
+      "GOVERNMENT": "Держсектор (B2G)"
+    },
+    "login": {
+      "title": "Вхід",
+      "subtitle": "Увійдіть до кабінету, щоб керувати замовленнями та профілем.",
+      "submit": "Увійти",
+      "submitting": "Вхід…",
+      "noAccount": "Немає акаунта?",
+      "toRegister": "Зареєструватися"
+    },
+    "register": {
+      "title": "Реєстрація",
+      "subtitle": "Створіть акаунт. Для B2B/B2G вкажіть дані організації.",
+      "submit": "Створити акаунт",
+      "submitting": "Створення…",
+      "haveAccount": "Вже є акаунт?",
+      "toLogin": "Увійти"
+    },
+    "profile": {
+      "title": "Кабінет",
+      "subtitle": "Ваш профіль і дані організації.",
+      "loading": "Завантаження…",
+      "pleaseLogin": "Щоб переглянути кабінет, увійдіть.",
+      "loginLink": "Перейти до входу",
+      "role": "Роль",
+      "segment": "Сегмент",
+      "organization": "Організація",
+      "verified": "Верифікація",
+      "verifiedYes": "Підтверджено",
+      "verifiedNo": "Очікує підтвердження",
+      "logout": "Вийти"
+    }
   }
 }

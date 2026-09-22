@@ -6,6 +6,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const t = await getTranslations('hero');
   const tSeg = await getTranslations('segments');
   const tFeat = await getTranslations('features');
+  const tNav = await getTranslations('nav');
 
   const p = (path: string) => `/${locale}${path}`;
 
@@ -29,6 +30,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               className="rounded-lg border border-neutral-600 px-6 py-3 font-semibold hover:bg-neutral-800"
             >
               {t('ctaCatalog')}
+            </Link>
+            <Link
+              href={p('/account')}
+              className="rounded-lg border border-neutral-600 px-6 py-3 font-semibold hover:bg-neutral-800"
+            >
+              {tNav('account')}
             </Link>
           </div>
         </div>
