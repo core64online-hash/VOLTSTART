@@ -1,0 +1,398 @@
+// VOLTSTAR — Prisma schema (скелет ключових моделей).
+// Розширюється по фазах дорожньої карти (docs/ROADMAP.md).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────── Enums ───────────────────────────
+enum Segment {
+  B2C
+  B2B
+  B2G
+}
+
+enum OrgType {
+  INDIVIDUAL
+  BUSINESS
+  GOVERNMENT
+}
+
+enum Role {
+  GUEST
+  CUSTOMER
+  MANAGER
+  ADMIN
+}
+
+enum Currency {
+  UAH
+  USD
+  EUR
+}
+
+enum FuelType {
+  PETROL
+  DIESEL
+  GAS
+  DUAL_FUEL
+  INVERTER
+}
+
+enum PhaseType {
+  SINGLE
+  THREE
+}
+
+enum OrderStatus {
+  DRAFT
+  PENDING_PAYMENT
+  PAID
+  INVOICED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentProviderKind {
+  WAYFORPAY
+  LIQPAY
+  STRIPE
+  BANK_INVOICE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum DealStage {
+  NEW
+  QUALIFIED
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+}
+
+// ──────────────────── Accounts & Auth ────────────────────────
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String?
+  firstName    String?
+  lastName     String?
+  phone        String?
+  role         Role     @default(CUSTOMER)
+  orgId        String?
+  organization Organization? @relation(fields: [orgId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orders       Order[]
+  carts        Cart[]
+  assignedLeads Lead[] @relation("LeadOwner")
+  assignedDeals Deal[] @relation("DealOwner")
+
+  @@index([orgId])
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  type      OrgType  @default(INDIVIDUAL)
+  segment   Segment  @default(B2C)
+  edrpou    String?  // код ЄДРПОУ (UA)
+  vatNumber String?
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]
+  orders    Order[]
+
+  @@index([segment])
+}
+
+// ─────────────────────────── Catalog ─────────────────────────
+model Brand {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  slug     String    @unique
+  products Product[]
+}
+
+model Category {
+  id       String     @id @default(cuid())
+  name     String
+  slug     String     @unique
+  parentId String?
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+  products Product[]
+}
+
+model Product {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  description String?
+  brandId     String
+  brand       Brand     @relation(fields: [brandId], references: [id])
+  categoryId  String
+  category    Category  @relation(fields: [categoryId], references: [id])
+  fuel        FuelType
+  phase       PhaseType
+  ratedPowerW Int       // номінальна потужність, Вт
+  maxPowerW   Int       // пікова потужність, Вт
+  images      String[]  @default([])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  specs     ProductSpec[]
+  prices    Price[]
+  inventory InventoryItem?
+  orderItems OrderItem[]
+
+  @@index([brandId])
+  @@index([categoryId])
+  @@index([ratedPowerW])
+}
+
+model ProductSpec {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  key       String  // напр. "Обʼєм бака, л"
+  value     String  // напр. "25"
+
+  @@index([productId])
+}
+
+model InventoryItem {
+  id        String  @id @default(cuid())
+  productId String  @unique
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int     @default(0)
+  warehouse String  @default("main")
+}
+
+// ─────────────────────────── Pricing ─────────────────────────
+model PriceList {
+  id        String   @id @default(cuid())
+  name      String
+  segment   Segment
+  currency  Currency @default(UAH)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  prices    Price[]
+
+  @@unique([segment, currency, name])
+}
+
+model Price {
+  id          String    @id @default(cuid())
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  priceListId String
+  priceList   PriceList @relation(fields: [priceListId], references: [id], onDelete: Cascade)
+  amountMinor Int       // ціна в мінімальних одиницях (копійки)
+  vatRate     Float     @default(0.2)
+
+  @@unique([productId, priceListId])
+  @@index([productId])
+}
+
+// ──────────────────── Equipment presets (Selector) ───────────
+model EquipmentPreset {
+  id       String  @id @default(cuid())
+  label    String  // напр. "Холодильник побутовий"
+  powerW   Int
+  loadType String  // RESISTIVE | INDUCTIVE | MOTOR | ELECTRONIC
+  category String? // групування у формі підбору
+}
+
+// ──────────────────────── Cart & Orders ──────────────────────
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String?
+  user      User?      @relation(fields: [userId], references: [id])
+  currency  Currency   @default(UAH)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  items     CartItem[]
+
+  @@index([userId])
+}
+
+model CartItem {
+  id        String  @id @default(cuid())
+  cartId    String
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId String
+  quantity  Int     @default(1)
+
+  @@index([cartId])
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  number      String      @unique
+  userId      String?
+  user        User?       @relation(fields: [userId], references: [id])
+  orgId       String?
+  organization Organization? @relation(fields: [orgId], references: [id])
+  segment     Segment     @default(B2C)
+  status      OrderStatus @default(DRAFT)
+  currency    Currency    @default(UAH)
+  totalMinor  Int         @default(0)
+  vatMinor    Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  items     OrderItem[]
+  payments  Payment[]
+  invoices  Invoice[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model OrderItem {
+  id            String  @id @default(cuid())
+  orderId       String
+  order         Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product @relation(fields: [productId], references: [id])
+  quantity      Int     @default(1)
+  unitPriceMinor Int
+  vatRate       Float   @default(0.2)
+
+  @@index([orderId])
+}
+
+// ─────────────────────────── Payments ────────────────────────
+model Payment {
+  id           String              @id @default(cuid())
+  orderId      String
+  order        Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider     PaymentProviderKind
+  status       PaymentStatus       @default(PENDING)
+  amountMinor  Int
+  currency     Currency            @default(UAH)
+  externalId   String?             // id транзакції у провайдера
+  rawPayload   Json?               // сира відповідь/вебхук (для звірки)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([orderId])
+  @@index([externalId])
+}
+
+model Invoice {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  number    String   @unique
+  pdfUrl    String?  // посилання на PDF у S3/R2
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+}
+
+// ─────────────────────────── CRM ─────────────────────────────
+model Company {
+  id        String    @id @default(cuid())
+  name      String
+  edrpou    String?
+  segment   Segment   @default(B2B)
+  createdAt DateTime  @default(now())
+  contacts  Contact[]
+  deals     Deal[]
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  firstName String?
+  lastName  String?
+  email     String?
+  phone     String?
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+  createdAt DateTime @default(now())
+  deals     Deal[]
+
+  @@index([companyId])
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  source    String   // напр. "selector-form", "b2b-request"
+  name      String?
+  email     String?
+  phone     String?
+  payload   Json?    // дані форми підбору тощо
+  ownerId   String?
+  owner     User?    @relation("LeadOwner", fields: [ownerId], references: [id])
+  createdAt DateTime @default(now())
+  deal      Deal?
+
+  @@index([ownerId])
+}
+
+model Deal {
+  id         String     @id @default(cuid())
+  title      String
+  stage      DealStage  @default(NEW)
+  amountMinor Int       @default(0)
+  currency   Currency   @default(UAH)
+  companyId  String?
+  company    Company?   @relation(fields: [companyId], references: [id])
+  contactId  String?
+  contact    Contact?   @relation(fields: [contactId], references: [id])
+  leadId     String?    @unique
+  lead       Lead?      @relation(fields: [leadId], references: [id])
+  ownerId    String?
+  owner      User?      @relation("DealOwner", fields: [ownerId], references: [id])
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  activities Activity[]
+  tasks      Task[]
+
+  @@index([stage])
+  @@index([ownerId])
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  dealId    String
+  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  type      String   // call | email | meeting | note
+  content   String?
+  createdAt DateTime @default(now())
+
+  @@index([dealId])
+}
+
+model Task {
+  id        String   @id @default(cuid())
+  dealId    String?
+  deal      Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  title     String
+  dueAt     DateTime?
+  done      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([dealId])
+}

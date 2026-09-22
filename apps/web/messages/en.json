@@ -1,0 +1,97 @@
+{
+  "meta": {
+    "title": "VOLTSTAR — generators for home and business",
+    "description": "Generator selection, catalog and online purchase. B2C · B2B · B2G."
+  },
+  "nav": {
+    "catalog": "Catalog",
+    "selector": "Selector",
+    "b2b": "For business",
+    "contacts": "Contacts"
+  },
+  "hero": {
+    "title": "A generator for any equipment",
+    "subtitle": "We calculate the required power and pick the optimal model from the most complete catalog.",
+    "ctaSelector": "Find a generator",
+    "ctaCatalog": "Browse catalog"
+  },
+  "segments": {
+    "title": "We serve every segment",
+    "b2c": { "title": "Private customers", "text": "Retail prices and instant online payment." },
+    "b2b": { "title": "Business", "text": "Wholesale prices, invoice payment, personal manager." },
+    "b2g": { "title": "Government", "text": "Tender document flow and reporting." }
+  },
+  "features": {
+    "selector": "Smart power-based selection",
+    "catalog": "The most complete generator catalog",
+    "payment": "Secure online payment",
+    "crm": "Support at every stage"
+  },
+  "selector": {
+    "title": "Generator selector",
+    "subtitle": "Add your loads — we compute the required power, accounting for startup surge and reserve.",
+    "itemLabel": "Name",
+    "power": "Power, W",
+    "qty": "Qty",
+    "loadType": "Load type",
+    "simultaneous": "Simultaneous start",
+    "addItem": "Add load",
+    "remove": "Remove",
+    "params": "Parameters",
+    "phase": "Phases",
+    "reserve": "Reserve, %",
+    "mode": "Mode",
+    "calculate": "Calculate",
+    "calculating": "Calculating…",
+    "error": "Calculation failed. Make sure the API is running (http://localhost:4000).",
+    "loadTypes": {
+      "RESISTIVE": "Resistive (heater, lamp)",
+      "INDUCTIVE": "Inductive (fridge, pump)",
+      "MOTOR": "Motor (compressor)",
+      "ELECTRONIC": "Electronics (PC)"
+    },
+    "phases": { "SINGLE": "1 phase (230 V)", "THREE": "3 phase (400 V)" },
+    "modes": { "BACKUP": "Backup", "PRIME": "Prime", "MOBILE": "Mobile" },
+    "result": {
+      "title": "Recommendation",
+      "running": "Running power",
+      "peak": "Peak power",
+      "recommended": "Recommended power",
+      "kva": "Apparent power",
+      "cta": "Find in catalog"
+    },
+    "preset": { "add": "Quick-add equipment", "choose": "Pick from list…" }
+  },
+  "catalog": {
+    "title": "Generator catalog",
+    "empty": "No products found. Make sure the API and database are running and seeded (pnpm --filter @voltstar/api seed).",
+    "inStock": "In stock",
+    "outOfStock": "Out of stock",
+    "power": "Power",
+    "phase": "Phases",
+    "fuel": "Fuel",
+    "from": "from",
+    "details": "Details",
+    "backToCatalog": "← Back to catalog",
+    "specs": "Specifications",
+    "notFound": "Product not found.",
+    "filters": {
+      "search": "Search by name",
+      "brand": "Brand",
+      "fuel": "Fuel",
+      "phase": "Phases",
+      "inStock": "In stock only",
+      "apply": "Apply",
+      "reset": "Reset",
+      "all": "All"
+    },
+    "fuels": {
+      "PETROL": "Petrol",
+      "DIESEL": "Diesel",
+      "GAS": "Gas",
+      "DUAL_FUEL": "Dual fuel",
+      "INVERTER": "Inverter"
+    },
+    "phases": { "SINGLE": "1 phase", "THREE": "3 phase" }
+  }
+}
