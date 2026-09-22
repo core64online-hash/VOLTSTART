@@ -12,7 +12,7 @@
 - [x] `.github/workflows/ci.yml`: install → lint → typecheck → test → build
 - [x] `docs/`: ARCHITECTURE.md, ROADMAP.md, CHECKLIST.md, README
 - [ ] Локальний запуск перевірено (`pnpm install`, `docker-compose up`, `pnpm dev`)
-- [ ] Перша Prisma-міграція згенерована в оточенні з БД
+- [x] Перша Prisma-міграція згенерована в оточенні з БД (`prisma/migrations/*_init`)
 
 ## Phase 1 — Каталог + Підбір
 - [ ] Моделі Product/Category/Brand/ProductSpec/InventoryItem + міграції
@@ -30,14 +30,18 @@
 - [x] Кабінети профілю за сегментами (B2C/B2B/B2G): login/register/account на web
 - [x] Тести доступів (RBAC) і коректності цін за сегментом
 - [ ] Скидання паролю (email) — перенесено до наступного інкременту
-- [ ] Перша Prisma-міграція для Accounts/Pricing в оточенні з БД
+- [x] Перша Prisma-міграція для Accounts/Pricing в оточенні з БД (увійшла в `init`)
 
 ## Phase 3 — Кошик, checkout, платежі
-- [ ] Cart/CartItem, розрахунок вартості, ПДВ, доставка
-- [ ] `PaymentProvider`: WayForPay/LiqPay + Stripe
-- [ ] Webhooks + звірка статусів (ідемпотентність, перевірка підписів)
-- [ ] Гілки checkout: B2C (карта) vs B2B/B2G (рахунок)
-- [ ] Тести оплат у sandbox
+- [x] Cart/CartItem, розрахунок вартості, ПДВ, доставка (Нова пошта / курʼєр / самовивіз, пороги безкоштовної доставки)
+- [x] `PaymentProvider`: WayForPay/LiqPay + Stripe + оплата за рахунком (BANK_INVOICE)
+- [x] Webhooks + звірка статусів (ідемпотентність за `WebhookEvent`, перевірка підписів, звірка суми)
+- [x] Гілки checkout: B2C (карта) vs B2B/B2G (рахунок; лише для верифікованих організацій)
+- [x] Резерв складу при оформленні (умовне списання) і відкат при збої провайдера
+- [x] Web: кнопка «У кошик», кошик із доставкою та оформленням, повернення з оплати
+- [x] Тести: підписи провайдерів, ідемпотентність вебхуків, розрахунки кошика, гілки checkout; e2e на реальній БД
+- [ ] Тести оплат у sandbox провайдерів (потрібні тестові облікові дані WayForPay/LiqPay/Stripe)
+- [ ] Повернення коштів (refund) через Stripe-вебхуки `charge.refunded` — наступний інкремент
 
 ## Phase 4 — Замовлення й документи
 - [ ] Order/OrderItem, машина станів

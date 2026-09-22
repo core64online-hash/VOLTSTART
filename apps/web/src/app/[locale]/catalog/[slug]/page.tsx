@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import type { Product } from '@voltstar/types';
 import { fetchProduct, formatPrice } from '../../../../lib/api';
+import { AddToCartButton } from './add-to-cart';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,6 +58,8 @@ export default async function ProductPage({
               {formatPrice(product.prices[0].amountMinor, product.prices[0].currency, `${locale}-UA`)}
             </p>
           )}
+
+          <AddToCartButton productId={product.id} disabled={!product.inStock || !product.prices[0]} />
         </article>
       )}
     </main>

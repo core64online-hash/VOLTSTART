@@ -7,3 +7,4 @@ export * from './selector';
 export * from './catalog';
 export * from './accounts';
 export * from './pricing';
+export * from './checkout';

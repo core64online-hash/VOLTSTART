@@ -37,6 +37,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             >
               {tNav('account')}
             </Link>
+            <Link
+              href={p('/cart')}
+              className="rounded-lg border border-neutral-600 px-6 py-3 font-semibold hover:bg-neutral-800"
+            >
+              {tNav('cart')}
+            </Link>
           </div>
         </div>
       </section>

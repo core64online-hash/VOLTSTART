@@ -5,7 +5,8 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // rawBody: потрібні сирі байти тіла для перевірки підписів платіжних вебхуків.
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   const origins = (process.env.API_CORS_ORIGINS ?? 'http://localhost:3000')
     .split(',')
