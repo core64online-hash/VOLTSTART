@@ -7,8 +7,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { Payment } from '@prisma/client';
-import type { PaymentInstruction, PaymentProviderKind } from '@voltstar/types';
+import type { OrderStatus, PaymentInstruction, PaymentProviderKind } from '@voltstar/types';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { logStatusChange } from '../orders/order-events';
 import { nextOrderStatus } from './order-status';
 import type { PaymentStatusValue, WebhookVerification } from './payment-provider.interface';
 import { PaymentProviderRegistry } from './payment-provider.registry';
@@ -41,6 +43,7 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly registry: PaymentProviderRegistry,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /** Кидає 503, якщо провайдер не налаштований — перевіряється до створення замовлення. */
@@ -95,10 +98,12 @@ export class PaymentsService {
     if (!v.eventId || !v.orderReference) return { received: true, ignored: true, ack };
 
     try {
-      const mismatch = await this.prisma.$transaction(async (tx) => {
+      const { mismatch, changedTo } = await this.prisma.$transaction(async (tx) => {
         await tx.webhookEvent.create({ data: { provider: kind, eventId: v.eventId! } });
         return this.apply(tx, kind, v, rawBody);
       });
+      // Лист — лише після коміту: інакше покупець міг би отримати «оплачено» для відкоченої транзакції.
+      if (changedTo) void this.notifications.orderStatusChanged(v.orderReference, changedTo);
       return { received: true, ack, ...(mismatch ? { mismatch: true } : {}) };
     } catch (e) {
       if (isUniqueViolation(e)) return { received: true, duplicate: true, ack };
@@ -107,8 +112,8 @@ export class PaymentsService {
   }
 
   /** Ручна звірка оплати за рахунком (менеджер/адмін). */
-  async markInvoicePaid(orderNumber: string): Promise<{ orderNumber: string; status: string }> {
-    return this.prisma.$transaction(async (tx) => {
+  async markInvoicePaid(orderNumber: string, actorId: string): Promise<{ orderNumber: string; status: string }> {
+    const result = await this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { number: orderNumber },
         include: { payments: { where: { provider: 'BANK_INVOICE' } } },
@@ -120,18 +125,29 @@ export class PaymentsService {
 
       await tx.payment.update({ where: { id: payment.id }, data: { status: 'SUCCEEDED' } });
       const status = nextOrderStatus(order.status, 'SUCCEEDED');
-      await tx.order.update({ where: { id: order.id }, data: { status } });
-      return { orderNumber, status };
+      if (status !== order.status) {
+        await tx.order.update({ where: { id: order.id }, data: { status } });
+        await logStatusChange(tx, {
+          orderId: order.id,
+          from: order.status,
+          to: status,
+          actor: actorId,
+          note: 'Оплату за рахунком звірено вручну',
+        });
+      }
+      return { orderNumber, status, changed: status !== order.status };
     });
+    if (result.changed) void this.notifications.orderStatusChanged(orderNumber, result.status);
+    return { orderNumber: result.orderNumber, status: result.status };
   }
 
-  /** Повертає true, якщо сума/валюта не збіглися. */
+  /** Застосовує подію; повертає, чи не збіглася сума, і новий статус замовлення (якщо змінився). */
   private async apply(
     tx: Parameters<Parameters<PrismaService['$transaction']>[0]>[0],
     kind: PaymentProviderKind,
     v: WebhookVerification,
     rawBody: string,
-  ): Promise<boolean> {
+  ): Promise<{ mismatch: boolean; changedTo?: OrderStatus }> {
     const order = await tx.order.findUnique({
       where: { number: v.orderReference! },
       include: { payments: { where: { provider: kind }, orderBy: { createdAt: 'desc' } } },
@@ -155,7 +171,9 @@ export class PaymentsService {
       data: { status, externalId: v.externalId ?? payment.externalId, rawPayload },
     });
     const next = nextOrderStatus(order.status, status);
-    if (next !== order.status) await tx.order.update({ where: { id: order.id }, data: { status: next } });
-    return !amountMatches;
+    if (next === order.status) return { mismatch: !amountMatches };
+    await tx.order.update({ where: { id: order.id }, data: { status: next } });
+    await logStatusChange(tx, { orderId: order.id, from: order.status, to: next, actor: `webhook:${kind}` });
+    return { mismatch: !amountMatches, changedTo: next };
   }
 }

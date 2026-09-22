@@ -39,12 +39,14 @@ function setup(opts: {
       }),
     },
     order: {
-      findUnique: vi.fn(async () => order),
+      // Як і Prisma, повертаємо знімок, а не живе посилання на «рядок у БД».
+      findUnique: vi.fn(async () => ({ ...order })),
       update: vi.fn(async ({ data }: { data: object }) => Object.assign(order, data)),
     },
     payment: {
       update: vi.fn(async ({ data }: { data: object }) => Object.assign(payment, data)),
     },
+    orderStatusEvent: { create: vi.fn(async () => undefined) },
   };
   const prisma = { ...store, $transaction: async <T>(fn: (tx: typeof store) => Promise<T>) => fn(store) };
 
@@ -55,8 +57,9 @@ function setup(opts: {
     webhookAck: vi.fn(() => ({ status: 'accept' })),
   };
   const registry = { get: () => provider, has: () => true };
-  const service = new PaymentsService(prisma as never, registry as never);
-  return { service, order, payment, provider, store };
+  const notifications = { orderStatusChanged: vi.fn(async () => undefined) };
+  const service = new PaymentsService(prisma as never, registry as never, notifications as never);
+  return { service, order, payment, provider, store, notifications };
 }
 
 const approved: WebhookVerification = {
@@ -70,12 +73,16 @@ const approved: WebhookVerification = {
 };
 
 describe('PaymentsService.handleWebhook', () => {
-  it('успішна оплата: платіж SUCCEEDED, замовлення PAID, повертає ack провайдера', async () => {
-    const { service, order, payment } = setup({ verification: approved });
+  it('успішна оплата: платіж SUCCEEDED, замовлення PAID, журнал і лист покупцю', async () => {
+    const { service, order, payment, store, notifications } = setup({ verification: approved });
     const res = await service.handleWebhook('WAYFORPAY', {}, '{}');
     expect(res).toEqual({ received: true, ack: { status: 'accept' } });
     expect(payment.status).toBe('SUCCEEDED');
     expect(order.status).toBe('PAID');
+    expect(store.orderStatusEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ fromStatus: 'PENDING_PAYMENT', toStatus: 'PAID', actor: 'webhook:WAYFORPAY' }),
+    });
+    expect(notifications.orderStatusChanged).toHaveBeenCalledWith('VS-1', 'PAID');
   });
 
   it('повторна доставка тієї ж події — ідемпотентно (duplicate), без повторних змін', async () => {
@@ -86,12 +93,13 @@ describe('PaymentsService.handleWebhook', () => {
     expect(store.payment.update).toHaveBeenCalledTimes(1);
   });
 
-  it('сума не збігається: платіж FAILED, замовлення не оплачується', async () => {
-    const { service, order, payment } = setup({ verification: { ...approved, amountMinor: 100 } });
+  it('сума не збігається: платіж FAILED, замовлення не оплачується, листа немає', async () => {
+    const { service, order, payment, notifications } = setup({ verification: { ...approved, amountMinor: 100 } });
     const res = await service.handleWebhook('WAYFORPAY', {}, '{}');
     expect(res.mismatch).toBe(true);
     expect(payment.status).toBe('FAILED');
     expect(order.status).toBe('PENDING_PAYMENT');
+    expect(notifications.orderStatusChanged).not.toHaveBeenCalled();
   });
 
   it('невалідний підпис — 400', async () => {
@@ -131,10 +139,17 @@ describe('PaymentsService.initiate', () => {
 
 describe('PaymentsService.markInvoicePaid', () => {
   it('позначає рахунок оплаченим і переводить замовлення в PAID; повтор — 409', async () => {
-    const { service, order, payment } = setup({ orderStatus: 'INVOICED', payment: { provider: 'BANK_INVOICE' } });
-    await expect(service.markInvoicePaid('VS-1')).resolves.toEqual({ orderNumber: 'VS-1', status: 'PAID' });
+    const { service, order, payment, store, notifications } = setup({
+      orderStatus: 'INVOICED',
+      payment: { provider: 'BANK_INVOICE' },
+    });
+    await expect(service.markInvoicePaid('VS-1', 'mgr-1')).resolves.toEqual({ orderNumber: 'VS-1', status: 'PAID' });
     expect(payment.status).toBe('SUCCEEDED');
     expect(order.status).toBe('PAID');
-    await expect(service.markInvoicePaid('VS-1')).rejects.toBeInstanceOf(ConflictException);
+    expect(store.orderStatusEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ fromStatus: 'INVOICED', toStatus: 'PAID', actor: 'mgr-1' }),
+    });
+    expect(notifications.orderStatusChanged).toHaveBeenCalledWith('VS-1', 'PAID');
+    await expect(service.markInvoicePaid('VS-1', 'mgr-1')).rejects.toBeInstanceOf(ConflictException);
   });
 });

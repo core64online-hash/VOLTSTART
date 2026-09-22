@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import type { AuthUser } from '@voltstar/types';
 import { clearToken, fetchMe, getToken } from '../../../lib/auth';
+import { MyOrders } from './my-orders';
 
 type State =
   | { status: 'loading' }
@@ -105,6 +106,8 @@ export function AccountView() {
           </dl>
         </div>
       )}
+
+      <MyOrders />
 
       <button
         type="button"

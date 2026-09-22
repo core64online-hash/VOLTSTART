@@ -11,7 +11,8 @@ async function bootstrap() {
   const origins = (process.env.API_CORS_ORIGINS ?? 'http://localhost:3000')
     .split(',')
     .map((o) => o.trim());
-  app.enableCors({ origin: origins, credentials: true });
+  // Content-Disposition — щоб web міг прочитати імʼя PDF-файлу при завантаженні документів.
+  app.enableCors({ origin: origins, credentials: true, exposedHeaders: ['Content-Disposition'] });
 
   app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));

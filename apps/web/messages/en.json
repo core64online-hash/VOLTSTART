@@ -107,6 +107,25 @@
     "edrpou": "EDRPOU code (8 digits)",
     "vatNumber": "VAT / tax number",
     "errorGeneric": "Something went wrong. Please try again.",
+    "forgot": {
+      "link": "Forgot password?",
+      "title": "Reset password",
+      "subtitle": "Enter your account email — we'll send a link to set a new password.",
+      "submit": "Send link",
+      "sending": "Sending…",
+      "sent": "If an account with this email exists, we've sent a link. Check your inbox (and spam folder)."
+    },
+    "reset": {
+      "title": "New password",
+      "subtitle": "Choose a new password (at least 8 characters).",
+      "password": "New password",
+      "confirm": "Repeat password",
+      "submit": "Save password",
+      "saving": "Saving…",
+      "mismatch": "Passwords don't match",
+      "done": "Password changed.",
+      "noToken": "The link is incomplete or broken."
+    },
     "types": {
       "INDIVIDUAL": "Individual (B2C)",
       "BUSINESS": "Business (B2B)",
@@ -192,7 +211,49 @@
       "thanks": "Order {number} received.",
       "thanksGeneric": "Your order has been received.",
       "note": "Payment status updates automatically once the payment system confirms it. You'll receive an email with the details.",
-      "continue": "Continue shopping"
+      "continue": "Continue shopping",
+      "track": "Track order"
+    }
+  },
+  "orders": {
+    "title": "Order {number}",
+    "mine": "My orders",
+    "empty": "No orders yet.",
+    "toCatalog": "Browse catalog",
+    "loading": "Loading…",
+    "error": "Couldn't load data. Please try again.",
+    "notFound": "Order not found. Check the number and email.",
+    "backToAccount": "Account",
+    "item": "Item",
+    "qty": "Qty",
+    "sum": "Amount",
+    "delivery": "Delivery",
+    "free": "free",
+    "vat": "incl. VAT",
+    "total": "Total",
+    "documents": "Documents",
+    "downloading": "Downloading…",
+    "history": "Order history",
+    "docs": {
+      "invoice": "Invoice",
+      "delivery-note": "Delivery note"
+    },
+    "statuses": {
+      "DRAFT": "Draft",
+      "PENDING_PAYMENT": "Awaiting payment",
+      "PAID": "Paid",
+      "INVOICED": "Invoiced",
+      "PROCESSING": "Processing",
+      "SHIPPED": "Shipped",
+      "DELIVERED": "Delivered",
+      "CANCELLED": "Cancelled",
+      "REFUNDED": "Refunded"
+    },
+    "track": {
+      "title": "Track your order",
+      "subtitle": "Enter the order number from the email and the email you used at checkout.",
+      "number": "Order number",
+      "submit": "Find order"
     }
   }
 }

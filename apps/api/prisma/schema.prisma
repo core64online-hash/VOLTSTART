@@ -108,8 +108,22 @@ model User {
   carts        Cart[]
   assignedLeads Lead[] @relation("LeadOwner")
   assignedDeals Deal[] @relation("DealOwner")
+  resetTokens  PasswordResetToken[]
 
   @@index([orgId])
+}
+
+// Одноразовий токен скидання паролю. Зберігаємо лише sha256-хеш токена.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model Organization {
@@ -277,9 +291,25 @@ model Order {
   items     OrderItem[]
   payments  Payment[]
   invoices  Invoice[]
+  events    OrderStatusEvent[]
 
   @@index([userId])
   @@index([status])
+}
+
+// Журнал переходів статусу замовлення (хто, коли, чому).
+model OrderStatusEvent {
+  id         String       @id @default(cuid())
+  orderId    String
+  order      Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  /// id користувача-менеджера або "system:<джерело>" (checkout, webhook:STRIPE, …)
+  actor      String
+  note       String?
+  createdAt  DateTime     @default(now())
+
+  @@index([orderId, createdAt])
 }
 
 model OrderItem {

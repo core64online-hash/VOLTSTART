@@ -24,9 +24,19 @@ export function ResultView() {
         <p className="text-lg">{t('thanksGeneric')}</p>
       )}
       <p className="text-sm text-neutral-600">{t('note')}</p>
-      <Link href={`/${locale}/catalog`} className="inline-block font-medium text-brand-dark hover:underline">
-        {t('continue')}
-      </Link>
+      <div className="flex flex-wrap gap-4">
+        {order && (
+          <Link
+            href={`/${locale}/orders/track?number=${encodeURIComponent(order.orderNumber)}`}
+            className="font-medium text-brand-dark hover:underline"
+          >
+            {t('track')}
+          </Link>
+        )}
+        <Link href={`/${locale}/catalog`} className="font-medium text-brand-dark hover:underline">
+          {t('continue')}
+        </Link>
+      </div>
     </div>
   );
 }

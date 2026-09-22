@@ -8,7 +8,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { PaymentProviderKindSchema, Role } from '@voltstar/types';
+import { PaymentProviderKindSchema, Role, type JwtPayload } from '@voltstar/types';
+import { CurrentUser } from '../../common/auth/current-user.decorator';
 import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 import { RolesGuard } from '../../common/auth/roles.guard';
@@ -53,7 +54,7 @@ export class PaymentsController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.MANAGER, Role.ADMIN)
-  markPaid(@Param('number') number: string) {
-    return this.payments.markInvoicePaid(number);
+  markPaid(@Param('number') number: string, @CurrentUser() user: JwtPayload) {
+    return this.payments.markInvoicePaid(number, user.sub);
   }
 }

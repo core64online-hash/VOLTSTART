@@ -57,6 +57,12 @@ export function LoginForm() {
         />
       </label>
 
+      <p className="text-right text-sm">
+        <Link href={`/${locale}/forgot-password`} className="text-neutral-600 hover:underline">
+          {t('forgot.link')}
+        </Link>
+      </p>
+
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <button

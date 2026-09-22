@@ -1,19 +1,10 @@
 import type { Cart, CheckoutInput, CheckoutResult, DeliveryMethod } from '@voltstar/types';
-import { apiUrl } from './api';
-import { getToken } from './auth';
+import { ApiError, apiJson } from './http';
+
+export { ApiError } from './http';
 
 const CART_KEY = 'voltstar_cart';
 const LAST_ORDER_KEY = 'voltstar_last_order';
-
-/** Помилка API з HTTP-статусом (щоб відрізняти «кошик зник» від збою мережі). */
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-  ) {
-    super(message);
-  }
-}
 
 function storage(): Storage | null {
   try {
@@ -27,29 +18,7 @@ export const getCartId = (): string | null => storage()?.getItem(CART_KEY) ?? nu
 const setCartId = (id: string) => storage()?.setItem(CART_KEY, id);
 export const clearCartId = () => storage()?.removeItem(CART_KEY);
 
-async function request<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
-  const headers: Record<string, string> = { 'content-type': 'application/json' };
-  const token = getToken();
-  if (token) headers.authorization = `Bearer ${token}`;
-  const res = await fetch(apiUrl(path), {
-    method: init.method ?? 'GET',
-    headers,
-    body: init.body === undefined ? undefined : JSON.stringify(init.body),
-    cache: 'no-store',
-  });
-  if (!res.ok) {
-    let message = `Помилка запиту (${res.status})`;
-    try {
-      const data = (await res.json()) as { message?: unknown };
-      if (typeof data.message === 'string') message = data.message;
-      else if (Array.isArray(data.message)) message = data.message.join(', ');
-    } catch {
-      /* тіло не JSON */
-    }
-    throw new ApiError(message, res.status);
-  }
-  return res.json() as Promise<T>;
-}
+const request = apiJson;
 
 /** Поточний кошик; якщо збережений id протух (404/403) — створюємо новий. */
 export async function loadCart(delivery?: DeliveryMethod): Promise<Cart> {
