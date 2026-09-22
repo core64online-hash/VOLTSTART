@@ -52,6 +52,9 @@ pnpm --filter @voltstar/api prisma:generate
 pnpm --filter @voltstar/api prisma:migrate
 pnpm --filter @voltstar/api seed
 
+# 4a. Пошуковий індекс каталогу (Typesense). Без нього каталог шукає через Postgres.
+pnpm --filter @voltstar/api search:reindex
+
 # 5. Запуск усього монорепо
 pnpm dev
 ```

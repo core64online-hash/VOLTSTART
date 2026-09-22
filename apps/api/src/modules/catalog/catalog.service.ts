@@ -8,6 +8,7 @@ import type {
   Segment,
 } from '@voltstar/types';
 import { PrismaService } from '../../prisma/prisma.service';
+import { SearchService } from '../search/search.service';
 
 const productInclude = {
   brand: true,
@@ -21,12 +22,40 @@ type ProductWithRelations = Prisma.ProductGetPayload<{ include: typeof productIn
 
 @Injectable()
 export class CatalogService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly search: SearchService,
+  ) {}
 
-  /** Список товарів із фільтрами та пагінацією. Ціни — для вказаного сегмента. */
+  /**
+   * Список товарів із фільтрами та пагінацією. Ціни — для вказаного сегмента.
+   * Якщо налаштовано Typesense — пошук (стійкий до опечаток) іде через нього,
+   * а при його недоступності — прозоро через Postgres.
+   */
   async list(
     query: CatalogQuery,
     segment: Segment = 'B2C',
+  ): Promise<{ items: Product[]; total: number; page: number; perPage: number }> {
+    if (this.search.enabled) {
+      try {
+        const { ids, total } = await this.search.searchProductIds(query);
+        const rows = await this.prisma.product.findMany({ where: { id: { in: ids } }, include: productInclude });
+        const byId = new Map(rows.map((r) => [r.id, r]));
+        const items = ids.flatMap((id) => {
+          const row = byId.get(id);
+          return row ? [this.toDto(row, segment)] : []; // товар видалено, а індекс ще не оновлено
+        });
+        return { items, total, page: query.page, perPage: query.perPage };
+      } catch (e) {
+        this.search.warn((e as Error).message);
+      }
+    }
+    return this.listFromDb(query, segment);
+  }
+
+  private async listFromDb(
+    query: CatalogQuery,
+    segment: Segment,
   ): Promise<{ items: Product[]; total: number; page: number; perPage: number }> {
     const where: Prisma.ProductWhereInput = {};
 
