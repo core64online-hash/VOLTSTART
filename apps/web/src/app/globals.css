@@ -2,8 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Лише світла тема: з `light dark` браузер у темній темі ОС малює поля й списки темними,
+   а текст у них лишається темним (нечитабельно). Темна тема сайту — окреме завдання. */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 body {
