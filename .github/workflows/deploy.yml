@@ -58,6 +58,8 @@ jobs:
   production:
     name: Production
     needs: staging
+    # Production вмикається змінною PRODUCTION_URL — доти деплоїться лише staging.
+    if: vars.PRODUCTION_URL != ''
     runs-on: ubuntu-latest
     environment: production
     steps:

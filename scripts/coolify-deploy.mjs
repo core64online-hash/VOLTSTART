@@ -2,7 +2,7 @@
 /**
  * Запуск деплою ресурсу в Coolify через API і очікування завершення.
  *   COOLIFY_URL=https://coolify.example COOLIFY_TOKEN=… node scripts/coolify-deploy.mjs <resource-uuid>
- * Токен — Coolify → Keys & Tokens → API tokens (право deploy). Код виходу ≠ 0, якщо деплой не вдався.
+ * Токен — Coolify → Keys & Tokens → API tokens (права deploy і read). Код виходу ≠ 0, якщо деплой не вдався.
  */
 const [uuid] = process.argv.slice(2);
 const base = (process.env.COOLIFY_URL ?? '').replace(/\/$/, '');
