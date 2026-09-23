@@ -51,7 +51,8 @@ API — під `/api` (без CORS; вебхуки оплат — `https://<до
    | Advanced → Proxy | Strip prefixes | **вимкнено** | інакше Traefik обрізає `/api`, і API відповідає 404 на всі запити |
    | Domains | `web` / `api` | той самий домен, порти `3000` / `4000`, шлях `/api` для `api` | сайт і API на одному домені |
 
-7. **API-токен** для GitHub Actions: Coolify → *Keys & Tokens* → *API tokens* → право `deploy`.
+7. **API-токен** для GitHub Actions: Coolify → *Keys & Tokens* → *API tokens* → права `deploy` і `read` (read — щоб стежити за статусом деплою).
+   API має бути ввімкнено: *Settings* → *API Access* (без обмеження IP — адреси GitHub Actions змінюються).
    UUID ресурсів — з адреси сторінки ресурсу в Coolify.
 8. **Сповіщення Coolify** (Telegram/email) про збої деплою й перезапуски контейнерів — *Notifications*.
 
@@ -66,9 +67,9 @@ API — під `/api` (без CORS; вебхуки оплат — `https://<до
 |---|---|---|
 | variable | `DEPLOY_ENABLED` | `true` (без неї workflow деплою нічого не робить) |
 | variable | `STAGING_URL` | `https://staging.voltstar.ua` |
-| variable | `PRODUCTION_URL` | `https://voltstar.ua` |
+| variable | `PRODUCTION_URL` | `https://voltstar.ua` — поки не задано, деплоїться лише staging |
 | secret | `COOLIFY_URL` | адреса вашого Coolify, напр. `https://mycoolify.pp.ua` |
-| secret | `COOLIFY_TOKEN` | API-токен із п. 1.6 |
+| secret | `COOLIFY_TOKEN` | API-токен із п. 1.7 |
 | secret | `COOLIFY_STAGING_UUID` | UUID ресурсу staging |
 | secret | `COOLIFY_PRODUCTION_UUID` | UUID ресурсу production |
 
