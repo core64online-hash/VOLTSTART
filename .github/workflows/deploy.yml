@@ -1,0 +1,92 @@
+name: Deploy
+
+# Деплой через Coolify: staging — автоматично після зеленого CI на main;
+# production — після ручного підтвердження (environment «production» з обовʼязковими
+# рецензентами), зі smoke-тестами й автоматичним відкатом при провалі.
+#
+# Увімкнення: Settings → Secrets and variables → Actions
+#   variables: DEPLOY_ENABLED=true, STAGING_URL, PRODUCTION_URL
+#   secrets:   COOLIFY_URL, COOLIFY_TOKEN, COOLIFY_STAGING_UUID, COOLIFY_PRODUCTION_UUID
+# Докладно — docs/RUNBOOK.md.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Коміт або гілка для деплою (типово — main)"
+        required: false
+        default: main
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: write # переміщення гілки production (для деплою й відкату)
+
+jobs:
+  staging:
+    name: Staging
+    if: >-
+      vars.DEPLOY_ENABLED == 'true' &&
+      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    environment: staging
+    outputs:
+      sha: ${{ steps.sha.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || inputs.ref }}
+      - id: sha
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Деплой у Coolify (staging, гілка main)
+        run: node scripts/coolify-deploy.mjs "${{ secrets.COOLIFY_STAGING_UUID }}"
+        env:
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+      - name: Smoke-тести staging
+        run: node scripts/smoke.mjs "${{ vars.STAGING_URL }}" --version "${{ steps.sha.outputs.sha }}" --retries 100
+
+  production:
+    name: Production
+    needs: staging
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Запамʼятати поточну версію production (для відкату)
+        id: prev
+        run: echo "sha=$(git rev-parse --verify -q origin/production || echo '')" >> "$GITHUB_OUTPUT"
+      - name: Перемістити гілку production на перевірений коміт
+        run: git push origin "${{ needs.staging.outputs.sha }}:refs/heads/production" --force
+      - name: Деплой у Coolify (production, гілка production)
+        run: node scripts/coolify-deploy.mjs "${{ secrets.COOLIFY_PRODUCTION_UUID }}"
+        env:
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+      - name: Smoke-тести production
+        id: smoke
+        run: node scripts/smoke.mjs "${{ vars.PRODUCTION_URL }}" --version "${{ needs.staging.outputs.sha }}" --retries 100
+      - name: Відкат на попередню версію
+        if: failure() && steps.prev.outputs.sha != ''
+        run: |
+          echo "::error::Smoke-тести не пройдено — відкат на ${{ steps.prev.outputs.sha }}"
+          git push origin "${{ steps.prev.outputs.sha }}:refs/heads/production" --force
+          node scripts/coolify-deploy.mjs "${{ secrets.COOLIFY_PRODUCTION_UUID }}"
+          node scripts/smoke.mjs "${{ vars.PRODUCTION_URL }}" --version "${{ steps.prev.outputs.sha }}" --retries 100
+        env:
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}

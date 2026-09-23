@@ -34,6 +34,9 @@ export function checkEnv(env: Record<string, string | undefined>): EnvReport {
     if (env.TYPESENSE_HOST && env.TYPESENSE_API_KEY === 'voltstar_dev_key') errors.push('TYPESENSE_API_KEY — значення-приклад');
     if (!env.SMTP_HOST) warnings.push('SMTP_HOST не задано — листи покупцям лише пишуться в лог');
     if (!env.TRUST_PROXY) warnings.push('TRUST_PROXY не задано — за балансувальником ліміти рахуватимуться за його IP');
+    if (!env.METRICS_TOKEN) warnings.push('METRICS_TOKEN не задано — /api/metrics у production вимкнено');
+    if (!env.INTERNAL_API_TOKEN) warnings.push('INTERNAL_API_TOKEN не задано — SSR сайту підпадатиме під ліміти запитів за IP');
+    else if (env.INTERNAL_API_TOKEN.length < 32) errors.push('INTERNAL_API_TOKEN закороткий (потрібно щонайменше 32 символи)');
   }
   return { errors, warnings };
 }

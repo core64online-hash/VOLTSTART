@@ -1,8 +1,8 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # Резервна копія PostgreSQL (формат custom, стиснений) з ротацією.
 #   DATABASE_URL=postgresql://… scripts/db-backup.sh [каталог]   (типово: ./backups)
 # Змінні: BACKUP_KEEP — скільки останніх копій лишати (типово 14).
-set -euo pipefail
+set -eu
 
 : "${DATABASE_URL:?Задайте DATABASE_URL}"
 DIR="${1:-./backups}"

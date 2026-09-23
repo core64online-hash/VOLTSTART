@@ -1,0 +1,144 @@
+# VOLTSTAR — runbook: деплой, відкат, відновлення
+
+Production-стек описано в [`docker-compose.prod.yml`](../docker-compose.prod.yml): `postgres`, `typesense`,
+`migrate` (одноразові міграції перед кожним стартом API), `api`, `web`, `backup` (щоденні копії БД),
+`retention` (щоденне очищення персональних даних за строками). Сайт і API працюють на **одному домені**:
+API — під `/api` (без CORS; вебхуки оплат — `https://<домен>/api/payments/webhooks/<провайдер>`).
+
+Основний спосіб розгортання — **Coolify** (домени й TLS від його Traefik). На звичайному VPS без Coolify
+той самий стек запускається з `docker-compose.caddy.yml` (TLS від Caddy) — див. [розділ 7](#7-vps-без-coolify).
+
+---
+
+## 1. Разове налаштування Coolify
+
+1. **DNS.** Запис `A` (і `AAAA`, якщо є IPv6) для `voltstar.ua` і `staging.voltstar.ua` → IP сервера Coolify.
+2. **Доступ до репозиторію.** Coolify → *Sources* → GitHub App → надати доступ до `core64online-hash/VOLTSTART`.
+3. **Гілка production.** Один раз створіть її з `main` (далі її рухає лише workflow деплою):
+   `git push origin main:production`
+4. **Два ресурси** (Project → *+ New* → *Docker Compose*, джерело — GitHub App):
+
+   | | staging | production |
+   |---|---|---|
+   | Гілка | `main` | `production` |
+   | Compose-файл | `/docker-compose.prod.yml` | `/docker-compose.prod.yml` |
+   | Домен сервісу `web` | `https://staging.voltstar.ua:3000` | `https://voltstar.ua:3000` |
+   | Домен сервісу `api` | `https://staging.voltstar.ua:4000/api` | `https://voltstar.ua:4000/api` |
+   | Auto Deploy | **вимкнути** (деплой запускає workflow після зеленого CI) | **вимкнути** |
+
+   Порт після домену — це порт контейнера, на який Traefik проксує `443` (формат Coolify). Для `api`
+   шлях `/api` не обрізається: API сам обслуговує маршрути з префіксом `/api`.
+5. **Змінні середовища** ресурсу (*Environment Variables*) — за зразком [`deploy/.env.prod.example`](../deploy/.env.prod.example).
+   Секрети генеруйте окремо для кожного середовища: `openssl rand -hex 32`.
+   Обовʼязкові: `SITE_URL`, `POSTGRES_PASSWORD`, `JWT_SECRET`, `INTERNAL_API_TOKEN`, `TYPESENSE_API_KEY`.
+   Для staging — **тестові** ключі оплат (sandbox), для production — бойові.
+   `APP_VERSION` не задавайте: Coolify передає `SOURCE_COMMIT`, і версія = SHA коміту
+   (її перевіряють smoke-тести після деплою).
+6. **API-токен** для GitHub Actions: Coolify → *Keys & Tokens* → *API tokens* → право `deploy`.
+   UUID ресурсів — з адреси сторінки ресурсу в Coolify.
+7. **Сповіщення Coolify** (Telegram/email) про збої деплою й перезапуски контейнерів — *Notifications*.
+
+## 2. Налаштування GitHub
+
+*Settings → Environments*: створіть `staging` і `production`; для `production` увімкніть
+**Required reviewers** — без підтвердження деплой у production не піде.
+
+*Settings → Secrets and variables → Actions*:
+
+| Тип | Назва | Значення |
+|---|---|---|
+| variable | `DEPLOY_ENABLED` | `true` (без неї workflow деплою нічого не робить) |
+| variable | `STAGING_URL` | `https://staging.voltstar.ua` |
+| variable | `PRODUCTION_URL` | `https://voltstar.ua` |
+| secret | `COOLIFY_URL` | адреса вашого Coolify, напр. `https://mycoolify.pp.ua` |
+| secret | `COOLIFY_TOKEN` | API-токен із п. 1.6 |
+| secret | `COOLIFY_STAGING_UUID` | UUID ресурсу staging |
+| secret | `COOLIFY_PRODUCTION_UUID` | UUID ресурсу production |
+
+## 3. Як відбувається деплой
+
+[`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml):
+
+1. Мерж у `main` → CI (lint, типи, тести, збірка, **збірка Docker-образів**) зелений →
+2. **staging**: Coolify збирає й запускає `main` → `scripts/smoke.mjs` перевіряє, що задеплоєно саме цей коміт
+   і що сайт, API, БД, пошук, SEO-файли й заголовки безпеки в порядку →
+3. **production** (після підтвердження рецензента): гілка `production` переміщується на перевірений коміт →
+   Coolify деплоїть → smoke-тести. **Якщо smoke-тести не пройшли — автоматичний відкат** на попередній
+   коміт `production` і повторна перевірка.
+
+Міграції БД виконує сервіс `migrate` перед стартом API. Міграції проєкту адитивні (нові таблиці/індекси);
+для руйнівних змін (перейменування, видалення стовпців) — двохетапний деплой: спершу код, сумісний з
+обома схемами, потім міграція.
+
+Ручний деплой певного коміту: *Actions → Deploy → Run workflow* → `ref`.
+
+## 4. Перший запуск production
+
+1. Задеплоїти (розділ 3), дочекатися зелених smoke-тестів.
+2. **Довідники каталогу** (бренди, категорії, прайс-листи B2C/B2B) — один раз seed-ом у терміналі
+   контейнера `api` (Coolify → ресурс → *Terminal*):
+   `npx tsx prisma/seed.ts` — потім демо-товари відредагуйте або приберіть в адмін-панелі.
+3. **Адміністратор**: зареєструйтеся на сайті, далі в терміналі `api`:
+   `npx tsx src/scripts/set-role.ts <email> ADMIN` (роль діє з наступного входу).
+4. У кабінетах платіжних систем вкажіть URL вебхуків і повернення:
+   `https://voltstar.ua/api/payments/webhooks/WAYFORPAY` (аналогічно `LIQPAY`, `STRIPE`).
+5. Перевірити пошту: «Забули пароль» → лист прийшов.
+6. Зовнішній моніторинг доступності (UptimeRobot / Better Stack) на `https://voltstar.ua/api/health/ready`
+   з інтервалом 1 хв і сповіщенням у Telegram.
+
+## 5. Моніторинг і журнали
+
+- **Liveness** `GET /api/health`, **readiness** `GET /api/health/ready` (перевіряє БД; 503 — якщо недоступна).
+  Healthcheck-и є в образах — Coolify/Docker перезапускає завислі контейнери.
+- **Метрики Prometheus**: `GET /api/metrics` з `Authorization: Bearer $METRICS_TOKEN`
+  (без токена в production — 404). Є лічильники й гістограми запитів за маршрутами, памʼять, затримка
+  event loop, `voltstar_build_info`. Корисні алерти: частка 5xx > 1% за 5 хв; p95
+  `http_request_duration_seconds` > 1 с; `up == 0`.
+- **Журнали** — у Coolify (*Logs* сервісу). Caddy (VPS-варіант) пише доступи в JSON.
+- **Дії персоналу** — журнал аудиту в адмін-панелі (*Журнал*).
+
+## 6. Відкат і відновлення
+
+**Автоматичний відкат** — див. розділ 3.
+
+**Ручний відкат коду** (напр., проблема помічена пізніше):
+1. Coolify → ресурс production → *Deployments* → попередній успішний деплой → *Redeploy*; або
+2. `git push origin <попередній-sha>:production --force` і *Deploy* у Coolify.
+
+Відкат коду **не відкочує міграції** — тому вони адитивні (старий код працює з новою схемою).
+
+**Відновлення БД із резервної копії** (втрата/пошкодження даних):
+```bash
+# 1. Знайти копію (том backups сервісу backup; .last-success — час останньої вдалої)
+docker compose exec backup ls -lt /backups
+# 2. Зупинити запис: api і web
+docker compose stop api web retention
+# 3. Відновити (контрольна сума перевіряється автоматично)
+docker compose exec backup sh -c 'TARGET_DATABASE_URL="$DATABASE_URL" /scripts/db-restore.sh /backups/voltstar-<дата>.dump'
+# 4. Запустити й перевірити
+docker compose start api web retention && node scripts/smoke.mjs https://voltstar.ua
+```
+Перед відновленням у production потренуйтеся на staging: `scripts/db-verify-restore.sh` відновлює копію
+в тимчасову БД і звіряє кількість рядків.
+
+> ⚠️ Копії зберігаються на тому ж сервері (том `backups`). Для захисту від втрати сервера
+> налаштуйте регулярне копіювання тому в зовнішнє сховище (S3/R2/Backblaze через rclone/restic,
+> або знімки диска провайдера) — це наступний крок.
+
+## 7. VPS без Coolify
+
+```bash
+cp deploy/.env.prod.example deploy/.env.prod   # заповнити, додати SITE_DOMAIN і ACME_EMAIL
+docker compose -f docker-compose.prod.yml -f docker-compose.caddy.yml --env-file deploy/.env.prod up -d --build
+node scripts/smoke.mjs https://voltstar.ua
+```
+Caddy отримує сертифікати Let's Encrypt автоматично (потрібні відкриті порти 80/443 і DNS на сервер),
+закриває `/api/metrics` ззовні, редіректить `www` на основний домен.
+
+## 8. Інцидент: короткий чек-лист
+
+1. `curl https://voltstar.ua/api/health/ready` — API й БД живі?
+2. Coolify → *Logs* `api`/`web` за останні хвилини; `docker compose ps` — чи немає рестартів.
+3. Помилка з'явилася після деплою → **відкат** (розділ 6), потім розбір.
+4. Оплати: чи доходять вебхуки (журнал `api`, розділ `payments`), чи не змінились ключі.
+5. Після усунення — запис в історії змін і, за потреби, повідомлення клієнтам.

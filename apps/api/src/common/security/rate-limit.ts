@@ -8,6 +8,7 @@ import {
   type ExecutionContext,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { timingSafeEqual } from 'node:crypto';
 
 /**
  * Обмеження частоти запитів (захист від перебору паролів, спаму заявками, скрейпінгу).
@@ -71,8 +72,28 @@ export class RateLimitStore {
   }
 }
 
-type LimitedRequest = { ip?: string; body?: unknown; socket?: { remoteAddress?: string } };
+type LimitedRequest = {
+  ip?: string;
+  body?: unknown;
+  headers?: Record<string, unknown>;
+  socket?: { remoteAddress?: string };
+};
 type LimitedResponse = { setHeader(name: string, value: string | number): void };
+
+/** Заголовок, яким web (SSR) позначає свої серверні запити до API. */
+export const INTERNAL_TOKEN_HEADER = 'x-internal-token';
+
+/**
+ * Серверний рендер сайту ходить до API з однієї адреси (контейнер web), тож без винятку
+ * впирався б у загальний ліміт за IP. Такі запити позначаються спільним секретом INTERNAL_API_TOKEN.
+ */
+export function isInternalRequest(headers: Record<string, unknown> | undefined, token = process.env.INTERNAL_API_TOKEN): boolean {
+  const given = headers?.[INTERNAL_TOKEN_HEADER];
+  if (!token || typeof given !== 'string') return false;
+  const a = Buffer.from(given);
+  const b = Buffer.from(token);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 @Injectable()
 export class RateLimitGuard implements CanActivate {
@@ -87,6 +108,7 @@ export class RateLimitGuard implements CanActivate {
     if (this.reflector.getAllAndOverride<boolean>(SKIP_RATE_LIMIT_KEY, targets)) return true;
     const rules = [GLOBAL_RULE, ...(this.reflector.getAllAndOverride<RateLimitRule[]>(RATE_LIMIT_KEY, targets) ?? [])];
     const req = ctx.switchToHttp().getRequest<LimitedRequest>();
+    if (isInternalRequest(req.headers)) return true;
     const res = ctx.switchToHttp().getResponse<LimitedResponse>();
     const ip = req.ip ?? req.socket?.remoteAddress ?? 'unknown';
 

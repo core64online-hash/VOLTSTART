@@ -105,6 +105,7 @@ node scripts/load-test.mjs --api http://localhost:4000 --web http://localhost:30
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — системна архітектура
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — покроковий план по фазах
 - [`docs/CHECKLIST.md`](docs/CHECKLIST.md) — детальний чек-лист
+- [`docs/RUNBOOK.md`](docs/RUNBOOK.md) — деплой (Coolify / VPS), відкат, відновлення БД, інциденти
 
 ## CI
 

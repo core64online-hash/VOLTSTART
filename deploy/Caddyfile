@@ -1,0 +1,30 @@
+{
+	email {$ACME_EMAIL}
+}
+
+# www → основний домен
+www.{$SITE_DOMAIN} {
+	redir https://{$SITE_DOMAIN}{uri} permanent
+}
+
+{$SITE_DOMAIN} {
+	{$CADDY_TLS}
+	encode zstd gzip
+
+	# Метрики — лише для Prometheus у внутрішній мережі (api:4000/api/metrics).
+	handle /api/metrics* {
+		respond 404
+	}
+	# API на тому ж домені: без CORS, вебхуки платіжних систем — на {$SITE_DOMAIN}/api/payments/webhooks/…
+	handle /api/* {
+		reverse_proxy api:4000
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

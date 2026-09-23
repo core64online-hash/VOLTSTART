@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
@@ -39,6 +40,10 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Docker-образ: мінімальний самодостатній сервер; трасування залежностей — від кореня монорепо.
+  ...(process.env.NEXT_STANDALONE === 'true'
+    ? { output: 'standalone', outputFileTracingRoot: fileURLToPath(new URL('../../', import.meta.url)) }
+    : {}),
   // Метадані (title, description, canonical, OG) — завжди в <head>, а не стрімом у <body>:
   // інакше їх не бачать прев'ю посилань у месенджерах і частина пошукових роботів.
   htmlLimitedBots: /.*/,
