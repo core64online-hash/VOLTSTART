@@ -100,6 +100,14 @@ if (slug) {
     slug,
   );
 }
+const presetsRes = await get('/api/catalog/equipment-presets');
+const presets = presetsRes.ok ? await presetsRes.json() : null;
+const labels = Array.isArray(presets) ? presets.map((p) => p.label) : [];
+check(
+  'пресети техніки для підбору без дублікатів',
+  Array.isArray(presets) && new Set(labels).size === labels.length,
+  `${labels.length} шт.`,
+);
 check('неіснуючий товар — 404', (await get('/uk/catalog/__smoke-missing__')).status === 404);
 
 // 4. Вхід із браузера. Адресу API (NEXT_PUBLIC_API_URL = SITE_URL) Next.js вшиває під час збірки
@@ -114,7 +122,10 @@ check(
 const login = await get('/api/accounts/login', {
   method: 'POST',
   headers: { 'content-type': 'application/json', origin: new URL(BASE).origin },
-  body: JSON.stringify({ email: 'smoke-test@example.invalid', password: 'smoke-test-wrong-password' }),
+  body: JSON.stringify({
+    email: 'smoke-test@example.invalid',
+    password: 'smoke-test-wrong-password',
+  }),
 });
 check('вхід: API відповідає на невірний пароль (401)', login.status === 401, String(login.status));
 
