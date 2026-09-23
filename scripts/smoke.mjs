@@ -102,7 +102,23 @@ if (slug) {
 }
 check('неіснуючий товар — 404', (await get('/uk/catalog/__smoke-missing__')).status === 404);
 
-// 4. Службові маршрути закриті
+// 4. Вхід із браузера. Адресу API (NEXT_PUBLIC_API_URL = SITE_URL) Next.js вшиває під час збірки
+//    і в JS, і в CSP connect-src; якщо SITE_URL не був доступний під час збірки, браузер
+//    стукає на http://localhost:4000 і показує «Failed to fetch», хоча сам API працює.
+const connectSrc = (csp.match(/connect-src ([^;]*)/)?.[1] ?? '').trim().split(/\s+/);
+check(
+  'CSP дозволяє браузеру запити до API цього домену',
+  connectSrc.includes(new URL(BASE).origin),
+  `connect-src ${connectSrc.join(' ') || '—'}`,
+);
+const login = await get('/api/accounts/login', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json', origin: new URL(BASE).origin },
+  body: JSON.stringify({ email: 'smoke-test@example.invalid', password: 'smoke-test-wrong-password' }),
+});
+check('вхід: API відповідає на невірний пароль (401)', login.status === 401, String(login.status));
+
+// 5. Службові маршрути закриті
 check('метрики не доступні ззовні', (await get('/api/metrics')).status === 404);
 const docs = await get('/docs');
 check('Swagger вимкнено', docs.status === 404 || docs.status >= 300);

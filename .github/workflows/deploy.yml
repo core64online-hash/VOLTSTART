@@ -20,6 +20,15 @@ on:
         description: "Коміт або гілка для деплою (типово — main)"
         required: false
         default: main
+      smoke_only:
+        description: "Лише smoke-тести staging, без деплою (діагностика)"
+        type: boolean
+        required: false
+        default: false
+      smoke_url:
+        description: "Адреса для smoke_only (типово — STAGING_URL)"
+        required: false
+        default: ""
 
 concurrency:
   group: deploy
@@ -62,20 +71,21 @@ jobs:
           node-version: 22
           package-manager-cache: false
       - name: Деплой у Coolify (staging, гілка main)
-        if: steps.gate.outputs.enabled == 'true'
+        if: steps.gate.outputs.enabled == 'true' && !inputs.smoke_only
         run: node scripts/coolify-deploy.mjs "${{ secrets.COOLIFY_STAGING_UUID }}"
         env:
           COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
       - name: Smoke-тести staging
         if: steps.gate.outputs.enabled == 'true'
-        run: node scripts/smoke.mjs "${{ vars.STAGING_URL }}" --version "${{ steps.sha.outputs.sha }}" --retries 100
+        # Без деплою на staging працює main, а не перевірюваний коміт — версію не звіряємо.
+        run: node scripts/smoke.mjs "${{ inputs.smoke_only && inputs.smoke_url || vars.STAGING_URL }}" ${{ !inputs.smoke_only && format('--version "{0}"', steps.sha.outputs.sha) || '' }} --retries 100
 
   production:
     name: Production
     needs: staging
     # Production вмикається змінною PRODUCTION_URL (рівня репозиторію) — доти деплоїться лише staging.
-    if: needs.staging.outputs.enabled == 'true' && vars.PRODUCTION_URL != ''
+    if: needs.staging.outputs.enabled == 'true' && vars.PRODUCTION_URL != '' && !inputs.smoke_only
     runs-on: ubuntu-latest
     environment: production
     steps:
