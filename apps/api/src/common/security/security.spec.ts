@@ -112,6 +112,18 @@ describe('checkEnv', () => {
     expect(checkEnv(good)).toEqual({ errors: [], warnings: [] });
   });
 
+  it('заглушки замість секретів (текст підказки чи непідставлений ${…}) — помилка', () => {
+    const r = checkEnv({
+      ...good,
+      TYPESENSE_API_KEY: 'задайте TYPESENSE_API_KEY',
+      METRICS_TOKEN: '${METRICS_TOKEN}',
+    });
+    expect(r.errors).toEqual([
+      'TYPESENSE_API_KEY містить заглушку замість значення',
+      'METRICS_TOKEN містить заглушку замість значення',
+    ]);
+  });
+
   it('у production небезпечні значення — фатальні', () => {
     const { errors } = checkEnv({
       ...good,

@@ -8,6 +8,7 @@ export interface EnvReport {
 }
 
 const DEV_JWT_SECRETS = new Set(['change_me_in_production', 'dev-insecure-secret']);
+const SECRET_KEYS = ['JWT_SECRET', 'INTERNAL_API_TOKEN', 'TYPESENSE_API_KEY', 'METRICS_TOKEN', 'DATABASE_URL'] as const;
 const isHttps = (url: string | undefined) => !!url && /^https:\/\//i.test(url.trim());
 
 export function checkEnv(env: Record<string, string | undefined>): EnvReport {
@@ -21,6 +22,13 @@ export function checkEnv(env: Record<string, string | undefined>): EnvReport {
   else if (secret.length < 32) problem('JWT_SECRET закороткий (потрібно щонайменше 32 символи)');
 
   if (!env.DATABASE_URL) errors.push('DATABASE_URL не задано');
+
+  // Значення-заглушки: текст підказки («задайте …») чи непідставлений шаблон «${…}», який
+  // панель деплою (напр. Coolify) могла взяти з compose-файла як значення змінної.
+  for (const key of SECRET_KEYS) {
+    const v = env[key];
+    if (v && (/^задайте/i.test(v) || v.includes('${'))) errors.push(`${key} містить заглушку замість значення`);
+  }
 
   const origins = (env.API_CORS_ORIGINS ?? '').split(',').map((o) => o.trim()).filter(Boolean);
   if (origins.includes('*')) errors.push('API_CORS_ORIGINS не може містити "*" (використовуються credentials)');
