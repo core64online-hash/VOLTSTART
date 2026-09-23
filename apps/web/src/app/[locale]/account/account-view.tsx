@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import type { AuthUser } from '@voltstar/types';
+import { Role, type AuthUser } from '@voltstar/types';
 import { clearToken, fetchMe, getToken } from '../../../lib/auth';
 import { MyOrders } from './my-orders';
 
@@ -15,6 +15,7 @@ type State =
 
 export function AccountView() {
   const t = useTranslations('account');
+  const tCrm = useTranslations('crm');
   const locale = useLocale();
   const router = useRouter();
   const [state, setState] = useState<State>({ status: 'loading' });
@@ -105,6 +106,15 @@ export function AccountView() {
             </div>
           </dl>
         </div>
+      )}
+
+      {(user.role === Role.MANAGER || user.role === Role.ADMIN) && (
+        <Link
+          href={`/${locale}/manager/crm`}
+          className="inline-block rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700"
+        >
+          {tCrm('title')} →
+        </Link>
       )}
 
       <MyOrders />

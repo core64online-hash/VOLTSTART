@@ -9,6 +9,7 @@ import type {
 } from '@voltstar/types';
 import { PrismaService } from '../../prisma/prisma.service';
 import { availableDocuments } from '../documents/documents.service';
+import { CrmService } from '../crm/crm.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { SearchService } from '../search/search.service';
 import { logStatusChange } from './order-events';
@@ -50,6 +51,7 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
     private readonly search: SearchService,
+    private readonly crm: CrmService,
   ) {}
 
   /** Історія замовлень користувача (кабінет). */
@@ -125,6 +127,7 @@ export class OrdersService {
     });
 
     void this.notifications.orderStatusChanged(number, to);
+    void this.crm.onOrderStatus(number, to);
     if (restockedIds.length) void this.search.syncProducts(restockedIds);
     return toDetail(updated);
   }

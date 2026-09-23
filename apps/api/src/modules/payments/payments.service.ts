@@ -9,6 +9,7 @@ import {
 import type { Payment } from '@prisma/client';
 import type { OrderStatus, PaymentInstruction, PaymentProviderKind } from '@voltstar/types';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CrmService } from '../crm/crm.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { logStatusChange } from '../orders/order-events';
 import { nextOrderStatus } from './order-status';
@@ -44,6 +45,7 @@ export class PaymentsService {
     private readonly prisma: PrismaService,
     private readonly registry: PaymentProviderRegistry,
     private readonly notifications: NotificationsService,
+    private readonly crm: CrmService,
   ) {}
 
   /** Кидає 503, якщо провайдер не налаштований — перевіряється до створення замовлення. */
@@ -103,7 +105,10 @@ export class PaymentsService {
         return this.apply(tx, kind, v, rawBody);
       });
       // Лист — лише після коміту: інакше покупець міг би отримати «оплачено» для відкоченої транзакції.
-      if (changedTo) void this.notifications.orderStatusChanged(v.orderReference, changedTo);
+      if (changedTo) {
+        void this.notifications.orderStatusChanged(v.orderReference, changedTo);
+        void this.crm.onOrderStatus(v.orderReference, changedTo);
+      }
       return { received: true, ack, ...(mismatch ? { mismatch: true } : {}) };
     } catch (e) {
       if (isUniqueViolation(e)) return { received: true, duplicate: true, ack };
@@ -137,7 +142,10 @@ export class PaymentsService {
       }
       return { orderNumber, status, changed: status !== order.status };
     });
-    if (result.changed) void this.notifications.orderStatusChanged(orderNumber, result.status);
+    if (result.changed) {
+        void this.notifications.orderStatusChanged(orderNumber, result.status);
+        void this.crm.onOrderStatus(orderNumber, result.status);
+      }
     return { orderNumber: result.orderNumber, status: result.status };
   }
 

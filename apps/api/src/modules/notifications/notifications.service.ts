@@ -73,6 +73,32 @@ export class NotificationsService {
     });
   }
 
+  /** Новий лід: відповідальному менеджеру (email) і в загальні канали менеджерів. */
+  async leadCreated(lead: {
+    name: string | null;
+    phone: string | null;
+    email: string | null;
+    companyName: string | null;
+    source: string;
+    ownerEmail: string | null;
+  }): Promise<void> {
+    await this.safely(`leadCreated ${lead.email ?? lead.phone}`, async () => {
+      const text = [
+        `📥 Новий лід (${lead.source})`,
+        [lead.name, lead.companyName].filter(Boolean).join(' · '),
+        [lead.phone && `+${lead.phone}`, lead.email].filter(Boolean).join(' · '),
+        `${this.webUrl}/uk/manager/crm`,
+      ]
+        .filter(Boolean)
+        .join('\n');
+      const jobs: Promise<void>[] = [this.notifyManagers(text, `Новий лід: ${lead.name ?? lead.email ?? lead.phone}`)];
+      if (lead.ownerEmail && lead.ownerEmail !== this.managerEmail) {
+        jobs.push(this.mailer.send({ to: lead.ownerEmail, subject: `Вам призначено лід: ${lead.name ?? ''}`, text, html: `<pre>${text}</pre>` }));
+      }
+      await Promise.all(jobs);
+    });
+  }
+
   async passwordReset(email: string, link: string, ttlMinutes: number): Promise<void> {
     await this.safely(`passwordReset ${email}`, () => this.mailer.send({ to: email, ...passwordResetEmail(link, ttlMinutes) }));
   }

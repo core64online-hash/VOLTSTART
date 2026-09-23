@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import type { Order, Payment } from '@prisma/client';
 import type { CheckoutInput, CheckoutResult } from '@voltstar/types';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CrmService } from '../crm/crm.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { logStatusChange } from '../orders/order-events';
 import { PaymentsService } from '../payments/payments.service';
@@ -32,6 +33,7 @@ export class CheckoutService {
     private readonly payments: PaymentsService,
     private readonly notifications: NotificationsService,
     private readonly search: SearchService,
+    private readonly crm: CrmService,
     config: ConfigService,
   ) {
     this.allowedOrigins = (config.get<string>('API_CORS_ORIGINS') ?? 'http://localhost:3000')
@@ -122,6 +124,7 @@ export class CheckoutService {
     }
 
     void this.notifications.orderPlaced(order.number);
+    void this.crm.onOrderPlaced(order.number);
     // Резерв міг вичерпати склад — оновлюємо «в наявності» в пошуковому індексі.
     void this.search.syncProducts(cart.lines.map((l) => l.productId));
 

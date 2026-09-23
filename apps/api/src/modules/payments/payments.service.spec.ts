@@ -58,8 +58,9 @@ function setup(opts: {
   };
   const registry = { get: () => provider, has: () => true };
   const notifications = { orderStatusChanged: vi.fn(async () => undefined) };
-  const service = new PaymentsService(prisma as never, registry as never, notifications as never);
-  return { service, order, payment, provider, store, notifications };
+  const crm = { onOrderStatus: vi.fn(async () => undefined) };
+  const service = new PaymentsService(prisma as never, registry as never, notifications as never, crm as never);
+  return { service, order, payment, provider, store, notifications, crm };
 }
 
 const approved: WebhookVerification = {
@@ -83,6 +84,12 @@ describe('PaymentsService.handleWebhook', () => {
       data: expect.objectContaining({ fromStatus: 'PENDING_PAYMENT', toStatus: 'PAID', actor: 'webhook:WAYFORPAY' }),
     });
     expect(notifications.orderStatusChanged).toHaveBeenCalledWith('VS-1', 'PAID');
+  });
+
+  it('оплата переводить повʼязану угоду CRM у WON', async () => {
+    const { service, crm } = setup({ verification: approved });
+    await service.handleWebhook('WAYFORPAY', {}, '{}');
+    expect(crm.onOrderStatus).toHaveBeenCalledWith('VS-1', 'PAID');
   });
 
   it('повторна доставка тієї ж події — ідемпотентно (duplicate), без повторних змін', async () => {

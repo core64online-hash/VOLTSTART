@@ -9,3 +9,4 @@ export * from './accounts';
 export * from './pricing';
 export * from './checkout';
 export * from './orders';
+export * from './crm';
