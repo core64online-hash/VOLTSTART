@@ -18,6 +18,7 @@ import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 import { RolesGuard } from '../../common/auth/roles.guard';
 import { Audited } from '../../common/audit/audit.interceptor';
+import { RateLimit } from '../../common/security/rate-limit';
 import { CrmService } from './crm.service';
 
 /** Доступ лише для менеджерів і адмінів. */
@@ -32,6 +33,7 @@ export class CrmController {
   /** Публічна заявка (форма підбору, запит B2B/B2G). Відповідь не розкриває внутрішніх даних. */
   @Post('leads')
   @HttpCode(202)
+  @RateLimit({ name: 'lead', limit: 5, windowSec: 600 })
   async createLead(@Body() body: unknown) {
     await this.crm.createLead(CreateLeadSchema.parse(body));
     return { received: true };

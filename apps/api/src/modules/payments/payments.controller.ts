@@ -14,6 +14,7 @@ import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 import { RolesGuard } from '../../common/auth/roles.guard';
 import { Audited } from '../../common/audit/audit.interceptor';
+import { SkipRateLimit } from '../../common/security/rate-limit';
 import { PaymentsService } from './payments.service';
 
 /** Мінімальний тип запиту: потрібні сирі байти тіла для перевірки підпису. */
@@ -35,6 +36,7 @@ export class PaymentsController {
 
   /** Вебхуки провайдерів (WAYFORPAY | LIQPAY | STRIPE). */
   @Post('webhooks/:provider')
+  @SkipRateLimit()
   @HttpCode(200)
   async webhook(@Param('provider') provider: string, @Req() req: RawRequest) {
     const kind = PaymentProviderKindSchema.safeParse(provider.toUpperCase());

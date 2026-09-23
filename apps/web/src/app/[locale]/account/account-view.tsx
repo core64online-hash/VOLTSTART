@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { Role, type AuthUser } from '@voltstar/types';
 import { clearToken, fetchMe, getToken } from '../../../lib/auth';
+import { MyData } from './my-data';
 import { MyOrders } from './my-orders';
 
 type State =
@@ -127,6 +128,8 @@ export function AccountView() {
       )}
 
       <MyOrders />
+
+      <MyData />
 
       <button
         type="button"

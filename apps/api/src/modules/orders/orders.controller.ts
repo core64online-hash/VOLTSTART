@@ -22,6 +22,7 @@ import { OptionalJwtAuthGuard } from '../../common/auth/optional-jwt-auth.guard'
 import { Roles } from '../../common/auth/roles.decorator';
 import { RolesGuard } from '../../common/auth/roles.guard';
 import { Audited } from '../../common/audit/audit.interceptor';
+import { RateLimit } from '../../common/security/rate-limit';
 import { DocumentsService } from '../documents/documents.service';
 import { OrdersService, type OrderViewer } from './orders.service';
 
@@ -65,6 +66,8 @@ export class OrdersController {
   /** Деталі: власник / персонал / гість із ?email= замовлення. */
   @Get(':number')
   @UseGuards(OptionalJwtAuthGuard)
+  // Гість шукає замовлення за номером+email — обмежуємо підбір.
+  @RateLimit({ name: 'order-lookup', limit: 120, windowSec: 600 })
   detail(@Param('number') number: string, @Query('email') email?: string, @CurrentUser() user?: JwtPayload) {
     return this.orders.getDetail(number, viewerOf(user, email));
   }

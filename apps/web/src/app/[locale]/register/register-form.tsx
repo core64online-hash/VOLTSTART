@@ -17,6 +17,7 @@ const SEGMENT_BY_TYPE: Record<AccountType, Segment> = {
 
 export function RegisterForm() {
   const t = useTranslations('account');
+  const tPrivacy = useTranslations('privacy');
   const locale = useLocale();
   const router = useRouter();
 
@@ -144,6 +145,13 @@ export function RegisterForm() {
       )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
+
+      <p className="text-xs text-neutral-500">
+        {tPrivacy('registerNotice')}{' '}
+        <Link href={`/${locale}/privacy`} className="underline">
+          {tPrivacy('policyLink')}
+        </Link>
+      </p>
 
       <button
         type="submit"

@@ -75,6 +75,22 @@ pnpm typecheck   # перевірка типів
 pnpm test        # тести
 ```
 
+## Безпека й дані
+
+```bash
+# Резервна копія (ротація BACKUP_KEEP, типово 14) і відновлення
+DATABASE_URL=postgresql://… scripts/db-backup.sh ./backups
+TARGET_DATABASE_URL=postgresql://… scripts/db-restore.sh backups/voltstar-<дата>.dump
+# Перевірка бекапу: відновлення в тимчасову БД і звірка таблиць (робочу БД не змінює)
+DATABASE_URL=postgresql://… scripts/db-verify-restore.sh
+
+# Очищення за строками зберігання персональних даних (щодня, cron)
+pnpm --filter @voltstar/api data:retention --dry-run
+pnpm --filter @voltstar/api data:retention
+```
+
+У production API не стартує з небезпечною конфігурацією (дефолтний `JWT_SECRET`, http-адреси, `*` у CORS, `LIQPAY_SANDBOX=true`) — див. лог запуску. За балансувальником задайте `TRUST_PROXY`, щоб ліміти запитів рахувались за IP клієнта.
+
 ## Документація
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — системна архітектура
