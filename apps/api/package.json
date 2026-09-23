@@ -14,7 +14,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "seed": "tsx prisma/seed.ts",
-    "search:reindex": "tsx src/scripts/reindex-search.ts"
+    "search:reindex": "tsx src/scripts/reindex-search.ts",
+    "user:role": "tsx src/scripts/set-role.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AccountsModule } from '../accounts/accounts.module';
+import { CrmModule } from '../crm/crm.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PaymentProviderRegistry } from './payment-provider.registry';
 import { PaymentsController } from './payments.controller';
@@ -9,7 +10,7 @@ import { buildProviders, PAYMENT_PROVIDERS } from './providers';
 
 // Phase 3: WayForPay/LiqPay + Stripe + оплата за рахунком за PaymentProvider, вебхуки, звірка.
 @Module({
-  imports: [AccountsModule, NotificationsModule],
+  imports: [AccountsModule, NotificationsModule, CrmModule],
   controllers: [PaymentsController],
   providers: [
     {

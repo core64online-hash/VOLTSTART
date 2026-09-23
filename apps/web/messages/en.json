@@ -62,7 +62,11 @@
       "kva": "Apparent power",
       "cta": "Find in catalog"
     },
-    "preset": { "add": "Quick-add equipment", "choose": "Pick from list…" }
+    "preset": { "add": "Quick-add equipment", "choose": "Pick from list…" },
+    "consult": {
+      "title": "Need advice?",
+      "text": "Leave your contacts — a manager will pick a specific model for your calculation and call you back."
+    }
   },
   "catalog": {
     "title": "Generator catalog",
@@ -254,6 +258,117 @@
       "subtitle": "Enter the order number from the email and the email you used at checkout.",
       "number": "Order number",
       "submit": "Find order"
+    }
+  },
+  "lead": {
+    "name": "Name",
+    "phone": "Phone",
+    "email": "Email",
+    "companyName": "Organization name",
+    "edrpou": "EDRPOU code",
+    "message": "Comment (site, needs, timing)",
+    "segment": "Customer type",
+    "segments": {
+      "b2b-request": "Business",
+      "b2g-request": "Public sector / tender"
+    },
+    "consent": "By sending the request you agree to the processing of your contact details so we can reach you.",
+    "submit": "Send request",
+    "sending": "Sending…",
+    "error": "Could not send the request. Please try again or call us.",
+    "sentTitle": "Thank you, request received!",
+    "sentText": "A manager will contact you shortly."
+  },
+  "business": {
+    "title": "For business and public sector",
+    "subtitle": "We will match equipment to your site and prepare a quote, an invoice and the full document set.",
+    "benefits": {
+      "pricing": "Wholesale and custom pricing for companies",
+      "invoice": "Bank-transfer invoices, VAT, delivery notes",
+      "tender": "Tender and Prozorro procurement support"
+    }
+  },
+  "crm": {
+    "title": "CRM",
+    "loading": "Loading…",
+    "pleaseLogin": "Sign in as a manager to use the CRM.",
+    "loginLink": "Sign in",
+    "noAccess": "Managers and administrators only.",
+    "mine": "Mine only",
+    "unassigned": "Unassigned",
+    "tabs": {
+      "leads": "Leads",
+      "pipeline": "Deals",
+      "tasks": "Tasks"
+    },
+    "leads": {
+      "filter": "Status:",
+      "all": "All",
+      "empty": "No leads.",
+      "date": "Date",
+      "who": "Who",
+      "contact": "Contacts",
+      "source": "Source",
+      "owner": "Owner",
+      "status": "Status",
+      "convert": "Create deal",
+      "openDeal": "Open deal"
+    },
+    "leadStatuses": {
+      "NEW": "New",
+      "CONTACTED": "Contacted",
+      "QUALIFIED": "Qualified",
+      "CONVERTED": "Deal",
+      "DISQUALIFIED": "Disqualified"
+    },
+    "sources": {
+      "selector-form": "Selector form",
+      "b2b-request": "Business request",
+      "b2g-request": "Public sector request",
+      "contact": "Contacts"
+    },
+    "stages": {
+      "NEW": "New",
+      "QUALIFIED": "Qualified",
+      "PROPOSAL": "Proposal",
+      "NEGOTIATION": "Negotiation",
+      "WON": "Won",
+      "LOST": "Lost"
+    },
+    "activityTypes": {
+      "call": "Call",
+      "email": "Email",
+      "meeting": "Meeting",
+      "note": "Note",
+      "system": "System"
+    },
+    "deal": {
+      "title": "Deal",
+      "close": "Close",
+      "amount": "Amount",
+      "company": "Company",
+      "contact": "Contact",
+      "owner": "Owner",
+      "order": "Order",
+      "lostReason": "Lost reason",
+      "lostReasonPlaceholder": "E.g. chose a cheaper supplier",
+      "move": "Move to stage",
+      "apply": "Apply",
+      "tasks": "Tasks",
+      "noTasks": "No tasks.",
+      "taskTitle": "New task",
+      "due": "Due",
+      "addTask": "Add",
+      "activities": "Communication history",
+      "activityType": "Entry type",
+      "activityPlaceholder": "What was discussed, agreements…",
+      "addActivity": "Log"
+    },
+    "tasks": {
+      "showDone": "Show completed",
+      "empty": "No open tasks.",
+      "overdue": "overdue",
+      "openDeal": "to deal"
     }
   }
 }

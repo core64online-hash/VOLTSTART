@@ -81,6 +81,14 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  CONVERTED
+  DISQUALIFIED
+}
+
 enum DealStage {
   NEW
   QUALIFIED
@@ -109,6 +117,9 @@ model User {
   assignedLeads Lead[] @relation("LeadOwner")
   assignedDeals Deal[] @relation("DealOwner")
   resetTokens  PasswordResetToken[]
+  contact      Contact?
+  crmTasks     Task[]     @relation("TaskAssignee")
+  activities   Activity[] @relation("ActivityAuthor")
 
   @@index([orgId])
 }
@@ -139,6 +150,7 @@ model Organization {
 
   users     User[]
   orders    Order[]
+  company   Company?
 
   @@index([segment])
 }
@@ -292,6 +304,7 @@ model Order {
   payments  Payment[]
   invoices  Invoice[]
   events    OrderStatusEvent[]
+  deal      Deal?
 
   @@index([userId])
   @@index([status])
@@ -365,16 +378,22 @@ model Invoice {
 }
 
 // ─────────────────────────── CRM ─────────────────────────────
+// Компанія в CRM; для зареєстрованих B2B/B2G повʼязана з Organization (1:1).
 model Company {
-  id        String    @id @default(cuid())
+  id        String        @id @default(cuid())
   name      String
   edrpou    String?
-  segment   Segment   @default(B2B)
-  createdAt DateTime  @default(now())
+  segment   Segment       @default(B2B)
+  orgId     String?       @unique
+  organization Organization? @relation(fields: [orgId], references: [id])
+  createdAt DateTime      @default(now())
   contacts  Contact[]
   deals     Deal[]
+
+  @@index([edrpou])
 }
 
+// Контактна особа; якщо є акаунт — повʼязана з User (1:1).
 model Contact {
   id        String   @id @default(cuid())
   firstName String?
@@ -383,43 +402,61 @@ model Contact {
   phone     String?
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
+  userId    String?  @unique
+  user      User?    @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
   deals     Deal[]
 
   @@index([companyId])
+  @@index([email])
 }
 
 model Lead {
-  id        String   @id @default(cuid())
-  source    String   // напр. "selector-form", "b2b-request"
-  name      String?
-  email     String?
-  phone     String?
-  payload   Json?    // дані форми підбору тощо
-  ownerId   String?
-  owner     User?    @relation("LeadOwner", fields: [ownerId], references: [id])
-  createdAt DateTime @default(now())
-  deal      Deal?
+  id          String     @id @default(cuid())
+  source      String     // selector-form | b2b-request | b2g-request | contact
+  status      LeadStatus @default(NEW)
+  segment     Segment    @default(B2C)
+  name        String?
+  email       String?
+  phone       String?    // нормалізований (380XXXXXXXXX) — для пошуку дублікатів
+  companyName String?
+  edrpou      String?
+  message     String?
+  payload     Json?      // дані форми підбору тощо
+  ownerId     String?
+  owner       User?      @relation("LeadOwner", fields: [ownerId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deal        Deal?
+  activities  Activity[]
+  tasks       Task[]
 
-  @@index([ownerId])
+  @@index([ownerId, status])
+  @@index([email])
+  @@index([phone])
 }
 
 model Deal {
-  id         String     @id @default(cuid())
-  title      String
-  stage      DealStage  @default(NEW)
-  amountMinor Int       @default(0)
-  currency   Currency   @default(UAH)
-  companyId  String?
-  company    Company?   @relation(fields: [companyId], references: [id])
-  contactId  String?
-  contact    Contact?   @relation(fields: [contactId], references: [id])
-  leadId     String?    @unique
-  lead       Lead?      @relation(fields: [leadId], references: [id])
-  ownerId    String?
-  owner      User?      @relation("DealOwner", fields: [ownerId], references: [id])
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  id          String     @id @default(cuid())
+  title       String
+  stage       DealStage  @default(NEW)
+  amountMinor Int        @default(0)
+  currency    Currency   @default(UAH)
+  lostReason  String?
+  closedAt    DateTime?
+  companyId   String?
+  company     Company?   @relation(fields: [companyId], references: [id])
+  contactId   String?
+  contact     Contact?   @relation(fields: [contactId], references: [id])
+  leadId      String?    @unique
+  lead        Lead?      @relation(fields: [leadId], references: [id])
+  // Угода, створена із замовлення B2B/B2G (1:1).
+  orderId     String?    @unique
+  order       Order?     @relation(fields: [orderId], references: [id])
+  ownerId     String?
+  owner       User?      @relation("DealOwner", fields: [ownerId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   activities Activity[]
   tasks      Task[]
@@ -428,25 +465,37 @@ model Deal {
   @@index([ownerId])
 }
 
+// Історія комунікацій: по угоді або по ліду.
 model Activity {
-  id        String   @id @default(cuid())
-  dealId    String
-  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
-  type      String   // call | email | meeting | note
-  content   String?
-  createdAt DateTime @default(now())
-
-  @@index([dealId])
-}
-
-model Task {
   id        String   @id @default(cuid())
   dealId    String?
   deal      Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
-  title     String
-  dueAt     DateTime?
-  done      Boolean  @default(false)
+  leadId    String?
+  lead      Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type      String   // call | email | meeting | note | system
+  content   String?
+  authorId  String?
+  author    User?    @relation("ActivityAuthor", fields: [authorId], references: [id])
   createdAt DateTime @default(now())
 
   @@index([dealId])
+  @@index([leadId])
+}
+
+model Task {
+  id         String    @id @default(cuid())
+  dealId     String?
+  deal       Deal?     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  leadId     String?
+  lead       Lead?     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  title      String
+  dueAt      DateTime?
+  done       Boolean   @default(false)
+  assigneeId String?
+  assignee   User?     @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  createdAt  DateTime  @default(now())
+
+  @@index([dealId])
+  @@index([leadId])
+  @@index([assigneeId, done])
 }
