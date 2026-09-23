@@ -11,17 +11,27 @@ if (!uuid || !base || !token) {
   console.error('Потрібні COOLIFY_URL, COOLIFY_TOKEN і uuid ресурсу');
   process.exit(2);
 }
-const api = async (path) => {
+const api = async (path, { method = 'GET', body } = {}) => {
   const res = await fetch(`${base}/api/v1${path}`, {
-    headers: { authorization: `Bearer ${token}`, accept: 'application/json' },
+    method,
+    headers: {
+      authorization: `Bearer ${token}`,
+      accept: 'application/json',
+      ...(body ? { 'content-type': 'application/json' } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
   });
-  const body = await res.text();
-  if (!res.ok) throw new Error(`Coolify ${res.status}: ${body.slice(0, 300)}`);
-  return body ? JSON.parse(body) : {};
+  const text = await res.text();
+  if (!res.ok) throw new Error(`Coolify ${res.status}: ${text.slice(0, 300)}`);
+  return text ? JSON.parse(text) : {};
 };
 
 async function main() {
-  const started = await api(`/deploy?uuid=${encodeURIComponent(uuid)}&force=false`);
+  // Coolify 4.3+: запуск деплою — лише POST (GET відповідає 405).
+  const started = await api(`/deploy?uuid=${encodeURIComponent(uuid)}&force=false`, {
+    method: 'POST',
+    body: { uuid, force: false },
+  });
   const deployment = started.deployments?.[0]?.deployment_uuid;
   console.log(`▶ Деплой запущено${deployment ? `: ${deployment}` : ''}`);
   if (!deployment) return; // старі версії Coolify не повертають id — далі чекають smoke-тести
