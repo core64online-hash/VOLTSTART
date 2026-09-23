@@ -16,12 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
+          package-manager-cache: false
 
       # pnpm піднімаємо через Corepack (вбудований у Node), а не через
       # сторонній pnpm/action-setup — щоб CI працював навіть за суворої
@@ -54,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # Лише збірка (без публікації): ловимо поломки Dockerfile до мержу.
       - name: Build API image

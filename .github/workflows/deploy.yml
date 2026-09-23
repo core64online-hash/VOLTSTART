@@ -50,16 +50,17 @@ jobs:
             echo "enabled=false" >> "$GITHUB_OUTPUT"
           fi
       - if: steps.gate.outputs.enabled == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.event.workflow_run.head_sha || inputs.ref }}
       - if: steps.gate.outputs.enabled == 'true'
         id: sha
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - if: steps.gate.outputs.enabled == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
+          package-manager-cache: false
       - name: Деплой у Coolify (staging, гілка main)
         if: steps.gate.outputs.enabled == 'true'
         run: node scripts/coolify-deploy.mjs "${{ secrets.COOLIFY_STAGING_UUID }}"
@@ -78,12 +79,13 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
+          package-manager-cache: false
       - name: Запамʼятати поточну версію production (для відкату)
         id: prev
         run: echo "sha=$(git rev-parse --verify -q origin/production || echo '')" >> "$GITHUB_OUTPUT"

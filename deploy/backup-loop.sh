@@ -1,7 +1,7 @@
 #!/bin/sh
 # Бекапи за розкладом у контейнері postgres: одразу після старту, далі кожні BACKUP_INTERVAL_SEC.
-# Копії з контрольними сумами — у томі /backups (ротація BACKUP_KEEP). Для копій поза сервером
-# змонтуйте /backups на зовнішнє сховище або синхронізуйте його (rclone/restic) окремим завданням.
+# Копії з контрольними сумами — у томі /backups (ротація BACKUP_KEEP). Копії поза сервером
+# робить сервіс offsite (deploy/offsite-loop.sh).
 set -eu
 INTERVAL="${BACKUP_INTERVAL_SEC:-86400}"
 while true; do

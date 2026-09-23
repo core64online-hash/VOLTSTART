@@ -4,7 +4,7 @@
 # seed, очищення за строками зберігання, переіндексацію пошуку.
 
 # ─── Build stage ───────────────────────────────────────────────
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 RUN corepack enable
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
@@ -17,7 +17,7 @@ RUN pnpm --filter @voltstar/types build
 RUN pnpm --filter @voltstar/api build
 
 # ─── Runtime stage ─────────────────────────────────────────────
-FROM node:20-alpine AS runtime
+FROM node:22-alpine AS runtime
 WORKDIR /app
 ARG APP_VERSION=dev
 ARG APP_COMMIT=unknown
@@ -25,7 +25,7 @@ ENV NODE_ENV=production \
     API_PORT=4000 \
     APP_VERSION=${APP_VERSION} \
     APP_COMMIT=${APP_COMMIT}
-# libssl3 для рушія Prisma вже є в node:20-alpine.
+# libssl3 для рушія Prisma вже є в node:22-alpine.
 RUN addgroup -S app && adduser -S app -G app
 COPY --from=build --chown=app:app /app/node_modules ./node_modules
 COPY --from=build --chown=app:app /app/packages ./packages

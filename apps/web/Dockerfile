@@ -3,7 +3,7 @@
 # NEXT_PUBLIC_* вшиваються під час збірки, тож образ збирається окремо для кожного середовища.
 
 # ─── Build stage ───────────────────────────────────────────────
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 RUN corepack enable
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
@@ -17,17 +17,24 @@ ARG NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_SITE_URL}
 ARG NEXT_PUBLIC_LEGAL_NAME="ТОВ «ВОЛЬТСТАР»"
 ARG NEXT_PUBLIC_LEGAL_EDRPOU=""
 ARG NEXT_PUBLIC_PRIVACY_EMAIL="privacy@voltstar.ua"
+# Звіти про помилки браузера (необовʼязково) і версія для них.
+ARG NEXT_PUBLIC_SENTRY_DSN=""
+ARG NEXT_PUBLIC_SENTRY_ENVIRONMENT=""
+ARG APP_VERSION=dev
 ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL} \
     NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
     NEXT_PUBLIC_LEGAL_NAME=${NEXT_PUBLIC_LEGAL_NAME} \
     NEXT_PUBLIC_LEGAL_EDRPOU=${NEXT_PUBLIC_LEGAL_EDRPOU} \
     NEXT_PUBLIC_PRIVACY_EMAIL=${NEXT_PUBLIC_PRIVACY_EMAIL} \
+    NEXT_PUBLIC_SENTRY_DSN=${NEXT_PUBLIC_SENTRY_DSN} \
+    NEXT_PUBLIC_SENTRY_ENVIRONMENT=${NEXT_PUBLIC_SENTRY_ENVIRONMENT} \
+    NEXT_PUBLIC_APP_VERSION=${APP_VERSION} \
     NEXT_STANDALONE=true \
     NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @voltstar/web build
 
 # ─── Runtime stage ─────────────────────────────────────────────
-FROM node:20-alpine AS runtime
+FROM node:22-alpine AS runtime
 WORKDIR /app
 ARG APP_VERSION=dev
 ENV NODE_ENV=production \
