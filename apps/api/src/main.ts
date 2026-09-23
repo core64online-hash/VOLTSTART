@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { metricsMiddleware } from './common/observability/metrics';
 import { checkEnv, trustProxySetting } from './common/security/env-check';
 import { securityHeaders } from './common/security/security-headers';
 
@@ -26,6 +27,7 @@ async function bootstrap() {
   app.set('trust proxy', trustProxySetting(process.env.TRUST_PROXY));
   app.disable('x-powered-by');
   app.use(securityHeaders({ hsts: prod }));
+  app.use(metricsMiddleware());
 
   const origins = (process.env.API_CORS_ORIGINS ?? 'http://localhost:3000')
     .split(',')
@@ -47,6 +49,9 @@ async function bootstrap() {
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('docs', app, document);
   }
+
+  // SIGTERM від Docker/оркестратора: довершуємо поточні запити й закриваємо зʼєднання з БД.
+  app.enableShutdownHooks();
 
   const port = Number(process.env.API_PORT ?? 4000);
   await app.listen(port);

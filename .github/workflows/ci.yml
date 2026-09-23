@@ -48,3 +48,23 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  docker:
+    name: Docker images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Лише збірка (без публікації): ловимо поломки Dockerfile до мержу.
+      - name: Build API image
+        run: docker build -f apps/api/Dockerfile --build-arg APP_VERSION=${{ github.sha }} -t voltstar-api:ci .
+
+      - name: Build web image
+        run: docker build -f apps/web/Dockerfile --build-arg NEXT_PUBLIC_SITE_URL=https://voltstar.example -t voltstar-web:ci .
+
+      - name: Validate production compose
+        run: |
+          POSTGRES_PASSWORD=x JWT_SECRET=x INTERNAL_API_TOKEN=x TYPESENSE_API_KEY=x SITE_URL=https://voltstar.example \
+            docker compose -f docker-compose.prod.yml config --quiet
+

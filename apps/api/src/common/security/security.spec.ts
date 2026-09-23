@@ -3,7 +3,15 @@ import { Reflector } from '@nestjs/core';
 import type { ExecutionContext } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { checkEnv, trustProxySetting } from './env-check';
-import { GLOBAL_RULE, RATE_LIMIT_KEY, RateLimitGuard, RateLimitStore, SKIP_RATE_LIMIT_KEY, type RateLimitRule } from './rate-limit';
+import {
+  GLOBAL_RULE,
+  isInternalRequest,
+  RATE_LIMIT_KEY,
+  RateLimitGuard,
+  RateLimitStore,
+  SKIP_RATE_LIMIT_KEY,
+  type RateLimitRule,
+} from './rate-limit';
 import { securityHeaders } from './security-headers';
 
 describe('RateLimitStore', () => {
@@ -75,6 +83,17 @@ describe('RateLimitGuard', () => {
   });
 });
 
+describe('isInternalRequest', () => {
+  const token = 't'.repeat(40);
+  it('лише точний збіг спільного секрету; без налаштованого токена — ніколи', () => {
+    expect(isInternalRequest({ 'x-internal-token': token }, token)).toBe(true);
+    expect(isInternalRequest({ 'x-internal-token': token.slice(1) + 'x' }, token)).toBe(false);
+    expect(isInternalRequest({ 'x-internal-token': 'short' }, token)).toBe(false);
+    expect(isInternalRequest({}, token)).toBe(false);
+    expect(isInternalRequest({ 'x-internal-token': '' }, undefined)).toBe(false);
+  });
+});
+
 describe('checkEnv', () => {
   const good = {
     NODE_ENV: 'production',
@@ -85,6 +104,8 @@ describe('checkEnv', () => {
     API_PUBLIC_URL: 'https://api.voltstar.ua',
     SMTP_HOST: 'smtp',
     TRUST_PROXY: '1',
+    METRICS_TOKEN: 'm'.repeat(32),
+    INTERNAL_API_TOKEN: 'i'.repeat(32),
   };
 
   it('коректна production-конфігурація — без помилок і попереджень', () => {

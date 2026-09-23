@@ -1,0 +1,163 @@
+# ─────────────────────────────────────────────────────────────
+# VOLTSTAR — production-стек. Працює як «Docker Compose»-ресурс у Coolify
+# (домени й TLS дає Traefik Coolify), так і на звичайному VPS разом із
+# docker-compose.caddy.yml (TLS від Caddy):
+#   docker compose -f docker-compose.prod.yml -f docker-compose.caddy.yml --env-file deploy/.env.prod up -d
+# Змінні середовища — див. deploy/.env.prod.example.
+# ─────────────────────────────────────────────────────────────
+name: voltstar
+
+x-api-env: &api-env
+  NODE_ENV: production
+  DATABASE_URL: postgresql://voltstar:${POSTGRES_PASSWORD:?задайте POSTGRES_PASSWORD}@postgres:5432/voltstar?schema=public
+  JWT_SECRET: ${JWT_SECRET:?задайте JWT_SECRET}
+  JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+  # Сайт і API — на одному домені: API під /api (маршрутизація на reverse-proxy).
+  API_CORS_ORIGINS: ${SITE_URL:?задайте SITE_URL}
+  API_PUBLIC_URL: ${SITE_URL}
+  WEB_PUBLIC_URL: ${SITE_URL}
+  TRUST_PROXY: ${TRUST_PROXY:-1}
+  INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?задайте INTERNAL_API_TOKEN}
+  METRICS_TOKEN: ${METRICS_TOKEN:-}
+  TYPESENSE_HOST: typesense
+  TYPESENSE_PORT: "8108"
+  TYPESENSE_PROTOCOL: http
+  TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:?задайте TYPESENSE_API_KEY}
+  TYPESENSE_SYNC_ON_START: "true"
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  EMAIL_FROM: ${EMAIL_FROM:-VOLTSTAR <noreply@voltstar.ua>}
+  MANAGER_EMAIL: ${MANAGER_EMAIL:-}
+  TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+  TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+  WAYFORPAY_MERCHANT_ACCOUNT: ${WAYFORPAY_MERCHANT_ACCOUNT:-}
+  WAYFORPAY_MERCHANT_SECRET: ${WAYFORPAY_MERCHANT_SECRET:-}
+  WAYFORPAY_DOMAIN: ${WAYFORPAY_DOMAIN:-}
+  LIQPAY_PUBLIC_KEY: ${LIQPAY_PUBLIC_KEY:-}
+  LIQPAY_PRIVATE_KEY: ${LIQPAY_PRIVATE_KEY:-}
+  STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+  STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+  INVOICE_IBAN: ${INVOICE_IBAN:-}
+  INVOICE_RECIPIENT: ${INVOICE_RECIPIENT:-ТОВ «ВОЛЬТСТАР»}
+  INVOICE_RECIPIENT_EDRPOU: ${INVOICE_RECIPIENT_EDRPOU:-}
+  INVOICE_RECIPIENT_ADDRESS: ${INVOICE_RECIPIENT_ADDRESS:-}
+  APP_VERSION: ${APP_VERSION:-${SOURCE_COMMIT:-dev}}
+
+x-api-build: &api-build
+  context: .
+  dockerfile: apps/api/Dockerfile
+  args:
+    APP_VERSION: ${APP_VERSION:-${SOURCE_COMMIT:-dev}}
+    APP_COMMIT: ${APP_COMMIT:-${SOURCE_COMMIT:-unknown}}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: voltstar
+      POSTGRES_DB: voltstar
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U voltstar -d voltstar"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  typesense:
+    image: typesense/typesense:27.1
+    restart: unless-stopped
+    command: ["--data-dir", "/data", "--api-key", "${TYPESENSE_API_KEY}", "--enable-cors", "false"]
+    volumes:
+      - typesense_data:/data
+
+  # Міграції схеми БД — одноразово перед стартом API (кожен деплой).
+  migrate:
+    build: *api-build
+    image: voltstar-api:${APP_VERSION:-${SOURCE_COMMIT:-dev}}
+    restart: "no"
+    command: ["npx", "prisma", "migrate", "deploy"]
+    environment:
+      DATABASE_URL: postgresql://voltstar:${POSTGRES_PASSWORD}@postgres:5432/voltstar?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build: *api-build
+    image: voltstar-api:${APP_VERSION:-${SOURCE_COMMIT:-dev}}
+    restart: unless-stopped
+    environment: *api-env
+    expose:
+      - "4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      typesense:
+        condition: service_started
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_SITE_URL: ${SITE_URL}
+        NEXT_PUBLIC_API_URL: ${SITE_URL}
+        NEXT_PUBLIC_LEGAL_NAME: ${LEGAL_NAME:-ТОВ «ВОЛЬТСТАР»}
+        NEXT_PUBLIC_LEGAL_EDRPOU: ${LEGAL_EDRPOU:-}
+        NEXT_PUBLIC_PRIVACY_EMAIL: ${PRIVACY_EMAIL:-privacy@voltstar.ua}
+        APP_VERSION: ${APP_VERSION:-${SOURCE_COMMIT:-dev}}
+    image: voltstar-web:${APP_VERSION:-${SOURCE_COMMIT:-dev}}
+    restart: unless-stopped
+    environment:
+      # SSR ходить до API внутрішньою мережею, позначаючи запити спільним секретом.
+      API_INTERNAL_URL: http://api:4000
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN}
+    expose:
+      - "3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # Резервні копії БД за розкладом (том backups; ротація BACKUP_KEEP).
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/deploy/backup-loop.sh"]
+    environment:
+      DATABASE_URL: postgresql://voltstar:${POSTGRES_PASSWORD}@postgres:5432/voltstar
+      BACKUP_KEEP: ${BACKUP_KEEP:-14}
+      BACKUP_INTERVAL_SEC: ${BACKUP_INTERVAL_SEC:-86400}
+    volumes:
+      - backups:/backups
+      - ./scripts:/scripts:ro
+      - ./deploy:/deploy:ro
+    depends_on:
+      # Перша копія — лише після міграцій (інакше зберігається порожня схема).
+      migrate:
+        condition: service_completed_successfully
+
+  # Очищення персональних даних за строками зберігання — щодня.
+  retention:
+    image: voltstar-api:${APP_VERSION:-${SOURCE_COMMIT:-dev}}
+    restart: unless-stopped
+    command: ["/bin/sh", "-c", "while true; do npx tsx src/scripts/data-retention.ts || echo 'retention failed' >&2; sleep 86400; done"]
+    # Healthcheck образу API тут не має сенсу — це фонове завдання, а не HTTP-сервіс.
+    healthcheck:
+      disable: true
+    environment:
+      DATABASE_URL: postgresql://voltstar:${POSTGRES_PASSWORD}@postgres:5432/voltstar?schema=public
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:
+  typesense_data:
+  backups:

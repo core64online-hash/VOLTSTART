@@ -37,3 +37,6 @@ apps/api/prisma/*.db
 # misc
 *.pem
 backups/
+
+# production-змінні на сервері
+deploy/.env.prod

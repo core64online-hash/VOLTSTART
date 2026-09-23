@@ -1,13 +1,17 @@
 import type { MetadataRoute } from 'next';
 import type { Product } from '@voltstar/types';
 import { routing } from '../i18n/routing';
-import { apiUrl } from '../lib/api';
+import { apiUrl, serverHeaders } from '../lib/api';
 import { localizedUrl } from '../lib/seo';
 
 // Карта сайту перебудовується щогодини (нові товари з адмінки потрапляють у неї автоматично).
 export const revalidate = 3600;
 
-const STATIC_PAGES: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'] }[] = [
+const STATIC_PAGES: {
+  path: string;
+  priority: number;
+  changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'];
+}[] = [
   { path: '', priority: 1, changeFrequency: 'weekly' },
   { path: '/catalog', priority: 0.9, changeFrequency: 'daily' },
   { path: '/selector', priority: 0.8, changeFrequency: 'monthly' },
@@ -23,7 +27,10 @@ async function allProducts(): Promise<Product[]> {
   const out: Product[] = [];
   try {
     for (let page = 1; page <= 100; page++) {
-      const res = await fetch(apiUrl(`/catalog/products?perPage=100&page=${page}`), { next: { revalidate } });
+      const res = await fetch(apiUrl(`/catalog/products?perPage=100&page=${page}`), {
+        headers: serverHeaders(),
+        next: { revalidate },
+      });
       if (!res.ok) break;
       const data = (await res.json()) as { items: Product[]; total: number };
       out.push(...data.items);

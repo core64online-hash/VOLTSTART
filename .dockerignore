@@ -1,0 +1,14 @@
+# Контекст збірки Docker: лише вихідний код, без залежностей, збірок і секретів.
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/coverage
+**/*.log
+.git
+.github
+backups
+.env
+.env.*
+!.env.example
+**/*.pem

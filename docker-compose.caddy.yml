@@ -1,0 +1,25 @@
+# Для звичайного VPS (без Coolify): Caddy з автоматичним TLS від Let's Encrypt.
+#   docker compose -f docker-compose.prod.yml -f docker-compose.caddy.yml --env-file deploy/.env.prod up -d
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:?задайте SITE_DOMAIN (напр. voltstar.ua)}
+      ACME_EMAIL: ${ACME_EMAIL:?задайте ACME_EMAIL (для Let's Encrypt)}
+      CADDY_TLS: ${CADDY_TLS:-}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+
+volumes:
+  caddy_data:
+  caddy_config:

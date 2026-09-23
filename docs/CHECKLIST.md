@@ -93,9 +93,13 @@
 - [x] Строки зберігання: `pnpm --filter @voltstar/api data:retention [--dry-run]` — кошики, заявки без угоди, контакти в старих B2C-замовленнях, журнал, токени, вебхуки
 
 ## Phase 8 — Випуск у прод
-- [ ] Середовища dev/staging/prod + керування секретами
-- [ ] CI/CD: автодеплой web + api, міграції БД у пайплайні
-- [ ] Домен/DNS/TLS, CDN, моніторинг (Sentry + Prometheus/Grafana), алерти
-- [ ] Бекапи БД за розкладом + перевірка відновлення
-- [ ] Smoke-тести на prod, плейбук відкату (rollback)
+- [x] Production-образи web (Next standalone, non-root) і API (non-root, healthcheck, версія збірки) — збираються в CI
+- [x] `docker-compose.prod.yml`: postgres, typesense, міграції перед стартом API, api, web, бекапи й очищення даних за розкладом; сайт і API на одному домені; для VPS — Caddy з автоматичним TLS
+- [x] Секрети лише через змінні середовища (Coolify / GitHub Secrets); API не стартує з небезпечною конфігурацією; SSR ходить до API внутрішньою мережею зі спільним секретом (не впирається в ліміти)
+- [x] CI/CD: staging після зеленого CI, production з ручним підтвердженням, smoke-тести й автоматичний відкат (`deploy.yml`, `scripts/coolify-deploy.mjs`, `scripts/smoke.mjs`)
+- [x] Моніторинг: readiness `/api/health/ready`, метрики Prometheus `/api/metrics` (за токеном)
+- [x] Бекапи БД за розкладом + перевірка відновлення (локально на prod-стеку); runbook відкату й відновлення — `docs/RUNBOOK.md`
+- [x] Prod-стек перевірено локально: TLS, smoke 16/16, справжній Typesense (пошук з опечатками), SSR під навантаженням, UI через reverse-proxy
+- [ ] Налаштувати ресурси в Coolify, DNS, GitHub Environments/Secrets (див. RUNBOOK) і перший деплой staging → production
+- [ ] Копії бекапів поза сервером (S3/R2 через rclone/restic), Sentry, дашборди Grafana й алерти
 - [ ] Запуск 🚀 + пост-реліз спостереження (2 тижні)
