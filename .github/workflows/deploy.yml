@@ -31,35 +31,50 @@ permissions:
 jobs:
   staging:
     name: Staging
-    if: >-
-      vars.DEPLOY_ENABLED == 'true' &&
-      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     environment: staging
     outputs:
+      enabled: ${{ steps.gate.outputs.enabled }}
       sha: ${{ steps.sha.outputs.sha }}
     steps:
-      - uses: actions/checkout@v4
+      # Перевірка в кроці, а не в `if` job: так DEPLOY_ENABLED можна тримати й у змінних
+      # environment staging (у `if` job GitHub бачить лише змінні рівня репозиторію).
+      - name: Деплой увімкнено?
+        id: gate
+        run: |
+          if [ "${{ vars.DEPLOY_ENABLED }}" = "true" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::DEPLOY_ENABLED != true — деплой пропущено"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.gate.outputs.enabled == 'true'
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || inputs.ref }}
-      - id: sha
+      - if: steps.gate.outputs.enabled == 'true'
+        id: sha
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      - uses: actions/setup-node@v4
+      - if: steps.gate.outputs.enabled == 'true'
+        uses: actions/setup-node@v4
         with:
           node-version: 20
       - name: Деплой у Coolify (staging, гілка main)
+        if: steps.gate.outputs.enabled == 'true'
         run: node scripts/coolify-deploy.mjs "${{ secrets.COOLIFY_STAGING_UUID }}"
         env:
           COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
       - name: Smoke-тести staging
+        if: steps.gate.outputs.enabled == 'true'
         run: node scripts/smoke.mjs "${{ vars.STAGING_URL }}" --version "${{ steps.sha.outputs.sha }}" --retries 100
 
   production:
     name: Production
     needs: staging
-    # Production вмикається змінною PRODUCTION_URL — доти деплоїться лише staging.
-    if: vars.PRODUCTION_URL != ''
+    # Production вмикається змінною PRODUCTION_URL (рівня репозиторію) — доти деплоїться лише staging.
+    if: needs.staging.outputs.enabled == 'true' && vars.PRODUCTION_URL != ''
     runs-on: ubuntu-latest
     environment: production
     steps:
