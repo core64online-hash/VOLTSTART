@@ -33,8 +33,8 @@ API — під `/api` (без CORS; вебхуки оплат — `https://<до
    Секрети генеруйте окремо для кожного середовища: `openssl rand -hex 32`.
    Обовʼязкові: `SITE_URL`, `POSTGRES_PASSWORD`, `JWT_SECRET`, `INTERNAL_API_TOKEN`, `TYPESENSE_API_KEY`.
    Для staging — **тестові** ключі оплат (sandbox), для production — бойові.
-   `APP_VERSION` не задавайте: Coolify передає `SOURCE_COMMIT`, і версія = SHA коміту
-   (її перевіряють smoke-тести після деплою).
+   Версія = SHA коміту: Coolify передає `SOURCE_COMMIT` сам (її перевіряють smoke-тести після деплою).
+   Рядок `SOURCE_COMMIT`, який Coolify може додати в список змінних, видаліть або лишіть порожнім.
    ⚠️ Coolify позначає «Required» лише частину змінних — `SITE_URL` і `POSTGRES_PASSWORD` теж обовʼязкові
    (вони входять у довші рядки compose, тому Coolify їх не розпізнає). `SITE_URL` — з `https://`, без порту
    й `/` у кінці, і з позначкою *Available during build* (сайт вшиває адресу під час збірки).

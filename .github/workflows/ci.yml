@@ -68,6 +68,14 @@ jobs:
           POSTGRES_PASSWORD=x JWT_SECRET=x INTERNAL_API_TOKEN=x TYPESENSE_API_KEY=x SITE_URL=https://voltstar.example \
             docker compose -f docker-compose.prod.yml config --quiet
 
+      # Coolify зчитує вкладені підстановки (${A:-${B}}) і текст після `:?` як значення змінних
+      # (напр. назва образу ставала «voltstar-api:${SOURCE_COMMIT:-dev}») — у compose їх бути не має.
+      - name: Compose is Coolify-safe
+        run: |
+          if grep -nE '\$\{[A-Za-z_]+:[-?][^}]*\$\{|\$\{[A-Za-z_]+:\?[^}]+\}' docker-compose.prod.yml | grep -vE '^[0-9]+:[[:space:]]*#'; then
+            echo "::error::docker-compose.prod.yml: вкладена підстановка або текст після :?"; exit 1
+          fi
+
       # Власні образи ніде не публікуються — кожен сервіс, що їх використовує, мусить мати `build`,
       # інакше `compose pull --ignore-buildable` (Coolify, перед деплоєм) шукає їх у Docker Hub.
       - name: Own images are buildable
