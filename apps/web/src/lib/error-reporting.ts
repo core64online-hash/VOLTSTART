@@ -11,7 +11,12 @@ let sdk: Promise<Sdk | null> | null = null;
 const stripQuery = (url: string) => url.split('?')[0].split('#')[0];
 
 type Scrubbable = {
-  request?: { url?: string; headers?: Record<string, string>; cookies?: unknown; query_string?: unknown };
+  request?: {
+    url?: string;
+    headers?: Record<string, string>;
+    cookies?: unknown;
+    query_string?: unknown;
+  };
   user?: unknown;
   breadcrumbs?: { data?: Record<string, unknown> }[];
 };
@@ -45,6 +50,9 @@ export function initErrorReporting(): Promise<Sdk | null> {
         release: process.env.NEXT_PUBLIC_APP_VERSION,
         sendDefaultPii: false,
         tracesSampleRate: 0,
+        // Без «сесій» (release health): інакше SDK шле запит на кожне відкриття сторінки,
+        // а нам потрібні лише звіти про помилки.
+        integrations: (defaults) => defaults.filter((i) => i.name !== 'BrowserSession'),
         beforeSend: (event) => scrubEvent(event),
         beforeBreadcrumb: (crumb) => {
           // Кліки/введення не потрібні для діагностики й можуть містити дані форм.
