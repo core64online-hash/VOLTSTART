@@ -2,7 +2,8 @@
 
 Production-стек описано в [`docker-compose.prod.yml`](../docker-compose.prod.yml): `postgres`, `typesense`,
 `migrate` (одноразові міграції перед кожним стартом API), `api`, `web`, `backup` (щоденні копії БД),
-`retention` (щоденне очищення персональних даних за строками). Сайт і API працюють на **одному домені**:
+`offsite` (копії бекапів у зовнішнє S3-сховище — вмикається змінними, розділ 6),
+`retention` (щоденне очищення персональних даних за строками). Образи — на Node 22 LTS. Сайт і API працюють на **одному домені**:
 API — під `/api` (без CORS; вебхуки оплат — `https://<домен>/api/payments/webhooks/<провайдер>`).
 
 Основний спосіб розгортання — **Coolify** (домени й TLS від його Traefik). На звичайному VPS без Coolify
@@ -38,6 +39,9 @@ API — під `/api` (без CORS; вебхуки оплат — `https://<до
    ⚠️ Coolify позначає «Required» лише частину змінних — `SITE_URL` і `POSTGRES_PASSWORD` теж обовʼязкові
    (вони входять у довші рядки compose, тому Coolify їх не розпізнає). `SITE_URL` — з `https://`, без порту
    й `/` у кінці, і з позначкою *Available during build* (сайт вшиває адресу під час збірки).
+   `SITE_URL` у кожного ресурсу **свій**: staging — `https://staging.<домен>`, production — `https://<домен>`.
+   Якщо staging зібрано з адресою production, сайт відкривається, але вхід і кошик падають з
+   «Failed to fetch» (браузер іде на API іншого домену). Після зміни `SITE_URL` — **Redeploy** (нова збірка).
    Без `openssl` (Windows PowerShell) секрет генерує:
    `$b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [BitConverter]::ToString($b).Replace('-','').ToLower()`
 6. **Налаштування ресурсу**, без яких стек не працює як слід:
@@ -73,6 +77,10 @@ API — під `/api` (без CORS; вебхуки оплат — `https://<до
 | secret | `COOLIFY_STAGING_UUID` | UUID ресурсу staging |
 | secret | `COOLIFY_PRODUCTION_UUID` | UUID ресурсу production |
 
+`DEPLOY_ENABLED`, `STAGING_URL` і секрети staging можна тримати в environment `staging`, а
+`COOLIFY_PRODUCTION_UUID` — в environment `production`. **`PRODUCTION_URL` — лише на рівні репозиторію**
+(*Repository variables*): від неї залежить, чи запускати job production, а умова job бачить тільки їх.
+
 ## 3. Як відбувається деплой
 
 [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml):
@@ -84,6 +92,13 @@ API — під `/api` (без CORS; вебхуки оплат — `https://<до
    Coolify деплоїть → smoke-тести. **Якщо smoke-тести не пройшли — автоматичний відкат** на попередній
    коміт `production` і повторна перевірка.
 
+Smoke-тести, крім доступності, перевіряють те, що ламається непомітно: CSP сайту дозволяє запити до API
+**цього** домену (інакше — «Failed to fetch» при вході), `POST /api/accounts/login` з невірним паролем → 401,
+пресети техніки для підбору без дублікатів, canonical на правильний домен.
+
+**Перевірка без деплою** (напр., після зміни змінних у Coolify): *Actions → Deploy → Run workflow* →
+`smoke_only` ✓ (і `smoke_url` — для іншої адреси, напр. production). Деплой і job production пропускаються.
+
 Міграції БД виконує сервіс `migrate` перед стартом API. Міграції проєкту адитивні (нові таблиці/індекси);
 для руйнівних змін (перейменування, видалення стовпців) — двохетапний деплой: спершу код, сумісний з
 обома схемами, потім міграція.
@@ -92,12 +107,19 @@ API — під `/api` (без CORS; вебхуки оплат — `https://<до
 
 ## 4. Перший запуск production
 
+Команди нижче — у терміналі Coolify (*Terminal*). ⚠️ Контейнер вибирається у списку вгорі терміналу;
+назва містить UUID ресурсу: `api-<UUID production>-…` ≠ `api-<UUID staging>-…`. Бази staging і production
+окремі — команда, виконана не в тому контейнері, змінює не той сайт.
+
 1. Задеплоїти (розділ 3), дочекатися зелених smoke-тестів.
-2. **Довідники каталогу** (бренди, категорії, прайс-листи B2C/B2B) — один раз seed-ом у терміналі
-   контейнера `api` (Coolify → ресурс → *Terminal*):
-   `npx tsx prisma/seed.ts` — потім демо-товари відредагуйте або приберіть в адмін-панелі.
-3. **Адміністратор**: зареєструйтеся на сайті, далі в терміналі `api`:
+2. **Довідники каталогу** (бренди, категорії, прайс-листи B2C/B2B, пресети техніки для підбору) — seed
+   і переіндексація пошуку в контейнері `api`:
+   `npx tsx prisma/seed.ts`, потім `npx tsx src/scripts/reindex-search.ts`.
+   Seed можна запускати повторно — дублікатів не створює. Демо-товар потім відредагуйте або приберіть
+   в адмін-панелі.
+3. **Адміністратор**: зареєструйтеся на сайті **цього** середовища, далі в терміналі `api`:
    `npx tsx src/scripts/set-role.ts <email> ADMIN` (роль діє з наступного входу).
+   Помилка `P2025 … No record was found` — такого email у цій базі немає (не той контейнер або не зареєстровано).
 4. У кабінетах платіжних систем вкажіть URL вебхуків і повернення:
    `https://voltstar.ua/api/payments/webhooks/WAYFORPAY` (аналогічно `LIQPAY`, `STRIPE`).
 5. Перевірити пошту: «Забули пароль» → лист прийшов.
@@ -114,6 +136,13 @@ API — під `/api` (без CORS; вебхуки оплат — `https://<до
   `http_request_duration_seconds` > 1 с; `up == 0`.
 - **Журнали** — у Coolify (*Logs* сервісу). Caddy (VPS-варіант) пише доступи в JSON.
 - **Дії персоналу** — журнал аудиту в адмін-панелі (*Журнал*).
+- **Звіти про помилки (Sentry або сумісний сервіс, напр. GlitchTip)** — змінна `SENTRY_DSN` (одна на API
+  й сайт; позначка *Available during build* — DSN для браузера вшивається під час збірки) і
+  `SENTRY_ENVIRONMENT` (`staging` / `production`). Надсилаються: 5xx і необроблені винятки API (без 4xx,
+  помилок валідації й `/api/health`), помилки серверного рендеру сайту з маршрутом, помилки в браузері.
+  Без персональних даних: без IP, cookies, користувача, тіла й заголовків запиту; URL — без query-рядка
+  (там бувають email і токени скидання пароля). Версія (`release`) = SHA коміту. Без DSN нічого не
+  надсилається, а SDK браузера навіть не завантажується. Після зміни DSN — **Redeploy**.
 
 ## 6. Відкат і відновлення
 
@@ -136,12 +165,44 @@ docker compose exec backup sh -c 'TARGET_DATABASE_URL="$DATABASE_URL" /scripts/d
 # 4. Запустити й перевірити
 docker compose start api web retention && node scripts/smoke.mjs https://voltstar.ua
 ```
-Перед відновленням у production потренуйтеся на staging: `scripts/db-verify-restore.sh` відновлює копію
-в тимчасову БД і звіряє кількість рядків.
+У Coolify ті самі команди — у терміналі контейнера `backup` (без `docker compose exec backup`), а зупинка
+й запуск сервісів — на сторінці ресурсу.
+Перед відновленням у production потренуйтеся на staging: `/scripts/db-verify-restore.sh` (у контейнері
+`backup`) знімає копію, відновлює її в тимчасову БД і звіряє кількість рядків.
 
-> ⚠️ Копії зберігаються на тому ж сервері (том `backups`). Для захисту від втрати сервера
-> налаштуйте регулярне копіювання тому в зовнішнє сховище (S3/R2/Backblaze через rclone/restic,
-> або знімки диска провайдера) — це наступний крок.
+### Копії поза сервером (сервіс `offsite`)
+
+Том `backups` лежить на тому ж сервері, тож від втрати сервера захищають лише копії в зовнішньому
+S3-сумісному сховищі (Cloudflare R2, Backblaze B2, AWS S3, Wasabi). Сервіс `offsite` (rclone) щогодини
+копіює туди нові завершені бекапи й видаляє там копії, старші за `OFFSITE_KEEP_DAYS`. Поки не задано
+`OFFSITE_S3_BUCKET`, сервіс нічого не робить.
+
+1. У кабінеті сховища створіть **бакет** і **ключ доступу** лише до нього (читання й запис).
+2. Змінні ресурсу в Coolify (для кожного середовища — свій бакет або свій `OFFSITE_S3_PREFIX`):
+
+   | Змінна | Приклад | |
+   |---|---|---|
+   | `OFFSITE_S3_BUCKET` | `voltstar-backups` | вмикає сервіс |
+   | `OFFSITE_S3_ENDPOINT` | R2: `https://<account-id>.r2.cloudflarestorage.com`, B2: `https://s3.<регіон>.backblazeb2.com` | для AWS S3 — порожньо |
+   | `OFFSITE_S3_PROVIDER` | `Cloudflare` / `AWS` / `Other` | типово `Other` |
+   | `OFFSITE_S3_REGION` | `auto` (R2), `eu-central-003` (B2) | типово `auto` |
+   | `OFFSITE_S3_ACCESS_KEY_ID`, `OFFSITE_S3_SECRET_ACCESS_KEY` | ключ із п. 1 | секрети |
+   | `OFFSITE_CRYPT_PASSWORD` | `openssl rand -hex 32` | рекомендовано: шифрування на сервері, сховище бачить лише шифротекст |
+   | `OFFSITE_S3_PREFIX`, `OFFSITE_KEEP_DAYS`, `OFFSITE_INTERVAL_SEC` | `voltstar`, `30`, `3600` | необовʼязково |
+
+   ⚠️ `OFFSITE_CRYPT_PASSWORD` збережіть ще й поза сервером (менеджер паролів): без нього зашифровані
+   копії не відновити.
+3. **Redeploy** → у журналі сервісу `offsite`: `✅ Зовнішні копії синхронізовано … N шт.`
+
+**Відновлення з зовнішнього сховища** (сервер втрачено або локальні копії пошкоджені) — на новому
+сервері підніміть стек із тими самими змінними `OFFSITE_*`, далі:
+```bash
+# у контейнері offsite: перелік копій і завантаження потрібної (розшифровується автоматично)
+sh /deploy/offsite-loop.sh list
+sh /deploy/offsite-loop.sh fetch voltstar-<дата>.dump      # → /backups/restore/
+# у контейнері backup (api, web, retention зупинено):
+TARGET_DATABASE_URL="$DATABASE_URL" /scripts/db-restore.sh /backups/restore/voltstar-<дата>.dump
+```
 
 ## 7. VPS без Coolify
 
@@ -155,7 +216,7 @@ Caddy отримує сертифікати Let's Encrypt автоматично
 
 ## 8. Інцидент: короткий чек-лист
 
-1. `curl https://voltstar.ua/api/health/ready` — API й БД живі?
+1. `curl https://voltstar.ua/api/health/ready` — API й БД живі? Повна перевірка ззовні — *Run workflow* з `smoke_only` (розділ 3).
 2. Coolify → *Logs* `api`/`web` за останні хвилини; `docker compose ps` — чи немає рестартів.
 3. Помилка з'явилася після деплою → **відкат** (розділ 6), потім розбір.
 4. Оплати: чи доходять вебхуки (журнал `api`, розділ `payments`), чи не змінились ключі.
