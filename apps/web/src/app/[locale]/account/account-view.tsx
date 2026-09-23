@@ -16,6 +16,7 @@ type State =
 export function AccountView() {
   const t = useTranslations('account');
   const tCrm = useTranslations('crm');
+  const tAdmin = useTranslations('admin');
   const locale = useLocale();
   const router = useRouter();
   const [state, setState] = useState<State>({ status: 'loading' });
@@ -114,6 +115,14 @@ export function AccountView() {
           className="inline-block rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700"
         >
           {tCrm('title')} →
+        </Link>
+      )}
+      {(user.role === Role.MANAGER || user.role === Role.ADMIN) && (
+        <Link
+          href={`/${locale}/admin`}
+          className="ml-2 inline-block rounded-lg border border-neutral-900 px-4 py-2 text-sm font-medium hover:bg-neutral-100"
+        >
+          {tAdmin('title')} →
         </Link>
       )}
 

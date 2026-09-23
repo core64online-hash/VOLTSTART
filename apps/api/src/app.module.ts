@@ -13,11 +13,14 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { CrmModule } from './modules/crm/crm.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { AuditModule } from './modules/audit/audit.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    AuditModule,
     HealthModule,
     // Bounded contexts (скелети — наповнюються по фазах ROADMAP.md)
     CatalogModule,
@@ -29,6 +32,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     OrdersModule,
     CrmModule,
     NotificationsModule,
+    AdminModule,
   ],
   // Глобально: помилки валідації zod → 400 (а не 500).
   providers: [{ provide: APP_FILTER, useClass: ZodExceptionFilter }],

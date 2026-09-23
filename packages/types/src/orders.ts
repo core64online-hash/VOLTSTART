@@ -4,6 +4,7 @@ import { DeliveryMethodSchema } from './checkout';
 import {
   CurrencySchema,
   OrderStatusSchema,
+  type OrderStatus,
   PaymentProviderKindSchema,
   SegmentSchema,
 } from './enums';
@@ -27,6 +28,30 @@ export const OrderSummarySchema = z.object({
   createdAt: z.string(),
 });
 export type OrderSummary = z.infer<typeof OrderSummarySchema>;
+
+/**
+ * Ручні переходи, доступні менеджеру. Оплату (→ PAID) виставляють вебхуки та звірка
+ * рахунку, а не ця таблиця. Оплачене замовлення не скасовують — лише повертають кошти.
+ */
+export const MANUAL_ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  DRAFT: ['CANCELLED'],
+  PENDING_PAYMENT: ['CANCELLED'],
+  INVOICED: ['CANCELLED'],
+  PAID: ['PROCESSING', 'REFUNDED'],
+  PROCESSING: ['SHIPPED', 'REFUNDED'],
+  SHIPPED: ['DELIVERED'],
+  DELIVERED: ['REFUNDED'],
+  CANCELLED: [],
+  REFUNDED: [],
+};
+
+/** Рядок списку замовлень для персоналу — з контактом покупця. */
+export const StaffOrderSummarySchema = OrderSummarySchema.extend({
+  contactName: z.string().nullable(),
+  contactEmail: z.string().nullable(),
+  organization: z.string().nullable(),
+});
+export type StaffOrderSummary = z.infer<typeof StaffOrderSummarySchema>;
 
 /** Повне подання замовлення: позиції, оплати, історія статусів, документи. */
 export const OrderDetailSchema = OrderSummarySchema.extend({
@@ -87,6 +112,8 @@ export type ChangeOrderStatusInput = z.infer<typeof ChangeOrderStatusSchema>;
 /** Список замовлень для менеджера. */
 export const ManageOrdersQuerySchema = z.object({
   status: OrderStatusSchema.optional(),
+  /** Пошук за номером, email, імʼям або організацією. */
+  q: z.string().trim().max(100).optional(),
   page: z.number().int().positive().default(1),
   perPage: z.number().int().positive().max(100).default(25),
 });

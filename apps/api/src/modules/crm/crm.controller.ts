@@ -17,6 +17,7 @@ import { CurrentUser } from '../../common/auth/current-user.decorator';
 import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 import { RolesGuard } from '../../common/auth/roles.guard';
+import { Audited } from '../../common/audit/audit.interceptor';
 import { CrmService } from './crm.service';
 
 /** Доступ лише для менеджерів і адмінів. */
@@ -44,12 +45,14 @@ export class CrmController {
 
   @Patch('leads/:id')
   @Staff()
+  @Audited('lead.update', 'Lead', 'id')
   updateLead(@Param('id') id: string, @Body() body: unknown, @CurrentUser() user: JwtPayload) {
     return this.crm.updateLead(id, UpdateLeadSchema.parse(body), user.sub);
   }
 
   @Post('leads/:id/convert')
   @Staff()
+  @Audited('lead.convert', 'Lead', 'id')
   convertLead(@Param('id') id: string, @Body() body: unknown, @CurrentUser() user: JwtPayload) {
     return this.crm.convertLead(id, ConvertLeadSchema.parse(body ?? {}), user.sub);
   }
@@ -63,6 +66,7 @@ export class CrmController {
 
   @Post('deals')
   @Staff()
+  @Audited('deal.create', 'Deal')
   createDeal(@Body() body: unknown, @CurrentUser() user: JwtPayload) {
     return this.crm.createDeal(CreateDealSchema.parse(body), user.sub);
   }
@@ -75,6 +79,7 @@ export class CrmController {
 
   @Patch('deals/:id/stage')
   @Staff()
+  @Audited('deal.stage', 'Deal', 'id')
   changeStage(@Param('id') id: string, @Body() body: unknown, @CurrentUser() user: JwtPayload) {
     return this.crm.changeDealStage(id, ChangeDealStageSchema.parse(body), user.sub);
   }

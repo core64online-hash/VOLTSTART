@@ -120,6 +120,7 @@ model User {
   contact      Contact?
   crmTasks     Task[]     @relation("TaskAssignee")
   activities   Activity[] @relation("ActivityAuthor")
+  auditLogs    AuditLog[] @relation("AuditActor")
 
   @@index([orgId])
 }
@@ -498,4 +499,34 @@ model Task {
   @@index([dealId])
   @@index([leadId])
   @@index([assigneeId, done])
+}
+
+// ─────────────────── Back-office (Phase 6) ───────────────────
+// Журнал дій персоналу: хто, що і з якими даними змінив. Запис лишається після видалення користувача.
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actor     User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  action    String   // напр. "order.status", "product.update", "user.role"
+  entity    String   // Order | Product | User | Organization | Lead | Deal | Search
+  entityId  String?
+  data      Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entity, entityId])
+  @@index([actorId, createdAt])
+}
+
+// Факт розрахунку у формі підбору — знаменник конверсії «підбір → заявка → угода».
+model SelectorRun {
+  id           String    @id @default(cuid())
+  recommendedW Int
+  phase        PhaseType
+  usageMode    String
+  itemsCount   Int
+  createdAt    DateTime  @default(now())
+
+  @@index([createdAt])
 }

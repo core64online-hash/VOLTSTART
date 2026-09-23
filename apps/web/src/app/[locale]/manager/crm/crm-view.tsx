@@ -16,6 +16,7 @@ import {
   type Pipeline,
 } from '@voltstar/types';
 import { formatPrice } from '../../../../lib/api';
+import { errorText, useLoad } from '../../../../lib/use-load';
 import { clearToken, fetchMe, getToken } from '../../../../lib/auth';
 import {
   addActivity,
@@ -40,7 +41,6 @@ const OPEN_STAGES: DealStageT[] = [
   DealStage.NEGOTIATION,
 ];
 const ACTIVITY_TYPES: ActivityType[] = ['call', 'email', 'meeting', 'note'];
-const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 function useDateFormat() {
   const locale = useLocale();
@@ -144,28 +144,6 @@ export function CrmView() {
       )}
     </div>
   );
-}
-
-/** Завантаження з повтором при зміні залежностей; помилка показується над вмістом. */
-function useLoad<T>(load: () => Promise<T>, deps: unknown[]) {
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    let alive = true;
-    load()
-      .then((d) => {
-        if (!alive) return;
-        setData(d);
-        setError(null);
-      })
-      .catch((e) => {
-        if (alive) setError(errorText(e));
-      });
-    return () => {
-      alive = false;
-    };
-  }, deps);
-  return { data, error, setError };
 }
 
 function LeadsTab({

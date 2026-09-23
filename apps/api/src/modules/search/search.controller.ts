@@ -4,6 +4,7 @@ import { Role } from '@voltstar/types';
 import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 import { RolesGuard } from '../../common/auth/roles.guard';
+import { Audited } from '../../common/audit/audit.interceptor';
 import { SearchService } from './search.service';
 
 @ApiTags('search')
@@ -17,6 +18,7 @@ export class SearchController {
   @HttpCode(200)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
+  @Audited('search.reindex', 'Search')
   async reindex() {
     if (!this.search.enabled) throw new ServiceUnavailableException('Typesense не налаштований');
     try {
