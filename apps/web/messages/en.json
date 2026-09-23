@@ -277,7 +277,8 @@
     "sending": "Sending…",
     "error": "Could not send the request. Please try again or call us.",
     "sentTitle": "Thank you, request received!",
-    "sentText": "A manager will contact you shortly."
+    "sentText": "A manager will contact you shortly.",
+    "privacyLink": "Privacy policy"
   },
   "business": {
     "title": "For business and public sector",
@@ -539,5 +540,36 @@
         "user_role": "Role changed"
       }
     }
+  },
+  "privacy": {
+    "banner": {
+      "title": "Cookie consent",
+      "text": "We only use strictly necessary browser storage (sign-in, cart). Analytics is enabled only with your permission.",
+      "more": "Learn more",
+      "necessary": "Necessary only",
+      "acceptAll": "Accept all"
+    },
+    "footer": {
+      "privacy": "Privacy policy",
+      "cookies": "Cookie settings",
+      "business": "For business"
+    },
+    "account": {
+      "title": "My data",
+      "text": "Download all your data or delete your account.",
+      "policy": "How we process data",
+      "export": "Download my data (JSON)",
+      "exporting": "Preparing the file…",
+      "delete": "Delete account",
+      "deleteWarning": "Your profile, contacts and requests will be anonymized and you will no longer be able to sign in. Orders are kept for accounting (1095 days) without being linked to you.",
+      "password": "Password to confirm",
+      "understood": "I understand this cannot be undone",
+      "confirmDelete": "Delete permanently",
+      "deleting": "Deleting…",
+      "cancel": "Cancel"
+    },
+    "registerNotice": "By registering you agree to data processing under the",
+    "policyLink": "Privacy policy",
+    "accountDeleted": "Your account has been deleted. Thank you for being with us."
   }
 }

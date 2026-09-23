@@ -21,6 +21,7 @@ import {
 } from '@voltstar/types';
 import { CurrentUser } from '../../common/auth/current-user.decorator';
 import { OptionalJwtAuthGuard } from '../../common/auth/optional-jwt-auth.guard';
+import { RateLimit } from '../../common/security/rate-limit';
 import { buyerFrom } from './buyer-context';
 import { CartService } from './cart.service';
 import { CheckoutService } from './checkout.service';
@@ -76,6 +77,7 @@ export class CheckoutController {
   /** Оформлення замовлення: B2C — оплата карткою, B2B/B2G — рахунок. */
   @Post()
   @HttpCode(201)
+  @RateLimit({ name: 'checkout', limit: 20, windowSec: 600 })
   checkout(@Body() body: unknown, @CurrentUser() user?: JwtPayload) {
     return this.checkoutService.checkout(CheckoutInputSchema.parse(body), buyerFrom(user));
   }

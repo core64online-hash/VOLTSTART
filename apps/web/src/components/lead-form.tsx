@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
 import { CreateLeadSchema, LeadSource } from '@voltstar/types';
 import { submitLead } from '../lib/crm';
 
@@ -19,6 +20,7 @@ type Field = 'name' | 'phone' | 'email' | 'companyName' | 'edrpou' | 'message';
 /** Заявка в CRM. Валідація та сама, що на сервері (спільна zod-схема). */
 export function LeadForm({ source, business = false, payload, defaultMessage = '' }: Props) {
   const t = useTranslations('lead');
+  const locale = useLocale();
   const [values, setValues] = useState<Record<Field, string>>({
     name: '',
     phone: '',
@@ -162,7 +164,12 @@ export function LeadForm({ source, business = false, payload, defaultMessage = '
         value={website}
         onChange={(e) => setWebsite(e.target.value)}
       />
-      <p className="text-xs text-neutral-500">{t('consent')}</p>
+      <p className="text-xs text-neutral-500">
+        {t('consent')}{' '}
+        <Link href={`/${locale}/privacy`} className="underline">
+          {t('privacyLink')}
+        </Link>
+      </p>
       <button
         type="submit"
         disabled={status === 'sending'}

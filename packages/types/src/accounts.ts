@@ -82,3 +82,7 @@ export const JwtPayloadSchema = z.object({
   orgId: z.string().nullable().optional(),
 });
 export type JwtPayload = z.infer<typeof JwtPayloadSchema>;
+
+/** Видалення власного акаунта — з підтвердженням паролем. */
+export const DeleteAccountSchema = z.object({ password: z.string().min(1, 'Введіть пароль') });
+export type DeleteAccountInput = z.infer<typeof DeleteAccountSchema>;

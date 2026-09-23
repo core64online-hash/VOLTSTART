@@ -1,6 +1,7 @@
 import { Body, Controller, Logger, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { SelectorInputSchema, type PowerCalculation } from '@voltstar/types';
+import { RateLimit } from '../../common/security/rate-limit';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SelectorService } from './selector.service';
 
@@ -16,6 +17,7 @@ export class SelectorController {
 
   /** Розрахунок потрібної потужності генератора за формою підбору. */
   @Post('calculate')
+  @RateLimit({ name: 'selector', limit: 60, windowSec: 60 })
   calculate(@Body() body: unknown): PowerCalculation {
     // Валідація вхідних даних через спільну zod-схему (@voltstar/types).
     const input = SelectorInputSchema.parse(body);

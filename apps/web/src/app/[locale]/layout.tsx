@@ -3,6 +3,8 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing, type Locale } from '../../i18n/routing';
+import { CookieBanner } from '../../components/cookie-banner';
+import { SiteFooter } from '../../components/site-footer';
 import '../globals.css';
 
 export function generateStaticParams() {
@@ -36,7 +38,11 @@ export default async function LocaleLayout({
   return (
     <html lang={locale}>
       <body>
-        <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider messages={messages}>
+          {children}
+          <SiteFooter />
+          <CookieBanner />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

@@ -36,3 +36,4 @@ apps/api/prisma/*.db
 
 # misc
 *.pem
+backups/

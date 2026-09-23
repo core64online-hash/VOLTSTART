@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ZodExceptionFilter } from './common/filters/zod-exception.filter';
+import { RateLimitGuard } from './common/security/rate-limit';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './modules/health/health.module';
@@ -35,6 +36,10 @@ import { AdminModule } from './modules/admin/admin.module';
     AdminModule,
   ],
   // Глобально: помилки валідації zod → 400 (а не 500).
-  providers: [{ provide: APP_FILTER, useClass: ZodExceptionFilter }],
+  providers: [
+    { provide: APP_FILTER, useClass: ZodExceptionFilter },
+    // Глобально: ліміти частоти запитів (загальний + точкові на вхід, заявки, оформлення).
+    { provide: APP_GUARD, useClass: RateLimitGuard },
+  ],
 })
 export class AppModule {}

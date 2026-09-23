@@ -1,8 +1,16 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 
-export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function HomePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ accountDeleted?: string }>;
+}) {
   const { locale } = await params;
+  const { accountDeleted } = await searchParams;
+  const tPrivacy = await getTranslations('privacy');
   const t = await getTranslations('hero');
   const tSeg = await getTranslations('segments');
   const tFeat = await getTranslations('features');
@@ -12,6 +20,11 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
   return (
     <main className="min-h-screen">
+      {accountDeleted === '1' && (
+        <p role="status" className="bg-green-50 px-4 py-3 text-center text-sm text-green-800">
+          {tPrivacy('accountDeleted')}
+        </p>
+      )}
       {/* Hero */}
       <section className="bg-neutral-900 text-white">
         <div className="mx-auto max-w-5xl px-4 py-24 text-center">
