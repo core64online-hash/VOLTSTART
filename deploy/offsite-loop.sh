@@ -5,9 +5,18 @@
 #
 # Вимкнено, доки не задано OFFSITE_S3_BUCKET. Якщо задано OFFSITE_CRYPT_PASSWORD, файли
 # шифруються на сервері до відправлення (rclone crypt) — сховище бачить лише шифротекст.
+#
+# Відновлення (у терміналі контейнера offsite):
+#   sh /deploy/offsite-loop.sh list                      — копії в зовнішньому сховищі
+#   sh /deploy/offsite-loop.sh fetch voltstar-<дата>.dump — завантажити (і розшифрувати) у /backups/restore/
 set -eu
 
+CMD="${1:-loop}"
 if [ -z "${OFFSITE_S3_BUCKET:-}" ]; then
+  if [ "$CMD" != loop ]; then
+    echo "OFFSITE_S3_BUCKET не задано — зовнішнє сховище не налаштоване" >&2
+    exit 1
+  fi
   echo "ℹ️  Зовнішні копії вимкнено (OFFSITE_S3_BUCKET не задано)"
   exec sleep 2147483647
 fi
@@ -33,14 +42,36 @@ if [ -n "${OFFSITE_CRYPT_PASSWORD:-}" ]; then
   TARGET="offsitecrypt:"
 fi
 
+case "$CMD" in
+  list)
+    rclone lsl "$TARGET" --include 'voltstar-*.dump' | sort -k2,3
+    exit 0
+    ;;
+  fetch)
+    NAME="${2:?вкажіть файл: fetch voltstar-<дата>.dump}"
+    case "$NAME" in voltstar-*.dump) ;; *) echo "Очікується назва voltstar-<дата>.dump" >&2; exit 2 ;; esac
+    mkdir -p /backups/restore
+    rclone copy "$TARGET" /backups/restore --include "/$NAME" --include "/$NAME.sha256" -v
+    [ -f "/backups/restore/$NAME" ] || { echo "❌ $NAME не знайдено в зовнішньому сховищі" >&2; exit 1; }
+    echo "✅ /backups/restore/$NAME — відновлення в контейнері backup: /scripts/db-restore.sh /backups/restore/$NAME"
+    exit 0
+    ;;
+  loop) ;;
+  *)
+    echo "Невідома команда: $CMD (list | fetch <файл>)" >&2
+    exit 2
+    ;;
+esac
+
 INTERVAL="${OFFSITE_INTERVAL_SEC:-3600}"
 KEEP_DAYS="${OFFSITE_KEEP_DAYS:-30}"
 echo "☁️  Зовнішні копії → ${OFFSITE_S3_BUCKET}/${OFFSITE_S3_PREFIX:-voltstar}$([ -n "${OFFSITE_CRYPT_PASSWORD:-}" ] && echo ' (зашифровано)'), кожні ${INTERVAL} с, зберігаються ${KEEP_DAYS} дн."
 
 while true; do
-  # Лише завершені копії та їхні контрольні суми (не *.part, що саме пишеться) і лише
-  # молодші за строк зберігання — інакше видалене нижче знову завантажувалося б щогодини.
-  if rclone copy /backups "$TARGET" --include 'voltstar-*.dump' --include 'voltstar-*.dump.sha256' \
+  # Лише завершені копії та їхні контрольні суми з кореня /backups (не *.part, що саме пишеться,
+  # і не завантажені назад у restore/) і лише молодші за строк зберігання — інакше видалене
+  # нижче знову завантажувалося б щогодини.
+  if rclone copy /backups "$TARGET" --include '/voltstar-*.dump' --include '/voltstar-*.dump.sha256' \
        --max-age "${KEEP_DAYS}d" --immutable --stats-one-line --stats 0 -v 2>&1; then
     rclone delete "$TARGET" --min-age "${KEEP_DAYS}d" --include 'voltstar-*' -v 2>&1 || true
     echo "✅ Зовнішні копії синхронізовано $(date -u +%FT%TZ): $(rclone lsf "$TARGET" --include 'voltstar-*.dump' | wc -l) шт."

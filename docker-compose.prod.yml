@@ -171,7 +171,8 @@ services:
       OFFSITE_KEEP_DAYS: ${OFFSITE_KEEP_DAYS:-30}
       OFFSITE_INTERVAL_SEC: ${OFFSITE_INTERVAL_SEC:-3600}
     volumes:
-      - backups:/backups:ro
+      # Запис — лише для відновлення: `fetch` завантажує копію в /backups/restore/ (див. RUNBOOK).
+      - backups:/backups
       - ./deploy:/deploy:ro
     depends_on:
       - backup
