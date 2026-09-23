@@ -1,6 +1,10 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { NO_INDEX } from '../../../../lib/seo';
+
+/** Службова сторінка — не для пошукових систем. */
+export const metadata = NO_INDEX;
 
 /** Відстеження замовлення гостем: номер + email. Форма працює без JS (GET). */
 export default async function TrackOrderPage({
@@ -11,6 +15,8 @@ export default async function TrackOrderPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { locale } = await params;
+  // Статичний рендер/ISR: мова з параметра маршруту, а не із заголовків запиту.
+  setRequestLocale(locale);
   const sp = await searchParams;
   const number = typeof sp.number === 'string' ? sp.number.trim() : '';
   const email = typeof sp.email === 'string' ? sp.email.trim() : '';

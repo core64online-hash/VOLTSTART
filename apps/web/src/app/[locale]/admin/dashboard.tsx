@@ -129,7 +129,7 @@ function Report({ data }: { data: Analytics }) {
             ))}
           </div>
         )}
-        <div className="mt-1 flex justify-between text-xs text-neutral-400">
+        <div className="mt-1 flex justify-between text-xs text-neutral-500">
           <span>{data.period.from}</span>
           <span>{data.period.to}</span>
         </div>

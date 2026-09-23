@@ -281,7 +281,7 @@ function ProductEditor({
         <button
           onClick={onClose}
           aria-label={t('close')}
-          className="text-neutral-400 hover:text-black"
+          className="text-neutral-500 hover:text-black"
         >
           ✕
         </button>

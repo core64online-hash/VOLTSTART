@@ -125,6 +125,7 @@ export function SelectorForm() {
               <label className="col-span-8 flex items-center gap-2 text-sm sm:col-span-1">
                 <input
                   type="checkbox"
+                  aria-label={t('simultaneous')}
                   checked={r.simultaneousStart}
                   onChange={(e) => patch(r._id, { simultaneousStart: e.target.checked })}
                 />

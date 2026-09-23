@@ -1,5 +1,9 @@
 import { getTranslations } from 'next-intl/server';
 import { ResetForm } from './reset-form';
+import { NO_INDEX } from '../../../lib/seo';
+
+/** Службова сторінка — не для пошукових систем. */
+export const metadata = NO_INDEX;
 
 export default async function ResetPasswordPage({
   searchParams,

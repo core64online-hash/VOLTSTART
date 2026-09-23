@@ -123,6 +123,7 @@ model User {
   auditLogs    AuditLog[] @relation("AuditActor")
 
   @@index([orgId])
+  @@index([role]) // розподіл лідів між менеджерами, підрахунок адмінів
 }
 
 // Одноразовий токен скидання паролю. Зберігаємо лише sha256-хеш токена.
@@ -267,6 +268,7 @@ model Cart {
   items     CartItem[]
 
   @@index([userId])
+  @@index([updatedAt]) // очищення покинутих кошиків
 }
 
 model CartItem {
@@ -307,8 +309,9 @@ model Order {
   events    OrderStatusEvent[]
   deal      Deal?
 
-  @@index([userId])
-  @@index([status])
+  @@index([userId, createdAt]) // «Мої замовлення» від нових до старих
+  @@index([status, createdAt]) // список персоналу з фільтром за статусом
+  @@index([createdAt]) // аналітика за період, список без фільтра
 }
 
 // Журнал переходів статусу замовлення (хто, коли, чому).
@@ -324,6 +327,7 @@ model OrderStatusEvent {
   createdAt  DateTime     @default(now())
 
   @@index([orderId, createdAt])
+  @@index([toStatus, createdAt]) // аналітика: оплати й повернення за період
 }
 
 model OrderItem {
@@ -435,6 +439,8 @@ model Lead {
   @@index([ownerId, status])
   @@index([email])
   @@index([phone])
+  @@index([createdAt]) // воронка за період, строки зберігання
+  @@index([source, createdAt]) // конверсія форми підбору
 }
 
 model Deal {
@@ -462,7 +468,7 @@ model Deal {
   activities Activity[]
   tasks      Task[]
 
-  @@index([stage])
+  @@index([stage, closedAt]) // канбан і закриті угоди за період
   @@index([ownerId])
 }
 

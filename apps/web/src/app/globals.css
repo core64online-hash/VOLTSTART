@@ -9,3 +9,18 @@
 body {
   @apply bg-white text-neutral-900 antialiased;
 }
+
+/* Доступність: помітний фокус для клавіатури (WCAG 2.4.7), без рамки при кліку мишею. */
+:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

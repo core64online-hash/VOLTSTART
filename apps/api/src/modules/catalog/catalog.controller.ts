@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { CatalogQuerySchema, SegmentSchema, type Segment } from '@voltstar/types';
+import { PublicCache } from '../../common/http/public-cache.interceptor';
 import { CatalogService } from './catalog.service';
 
 /** Нормалізує query-параметр у масив рядків. */
@@ -15,12 +16,14 @@ function toNumber(v: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+/** Каталог публічний і не залежить від користувача (сегмент — у параметрах), тож кешується в браузері й CDN. */
 @ApiTags('catalog')
 @Controller('catalog')
 export class CatalogController {
   constructor(private readonly catalog: CatalogService) {}
 
   @Get('products')
+  @PublicCache()
   list(@Query() q: Record<string, unknown>) {
     const query = CatalogQuerySchema.parse({
       q: q.q ? String(q.q) : undefined,
@@ -37,16 +40,19 @@ export class CatalogController {
   }
 
   @Get('facets')
+  @PublicCache()
   facets() {
     return this.catalog.facets();
   }
 
   @Get('equipment-presets')
+  @PublicCache()
   presets() {
     return this.catalog.equipmentPresets();
   }
 
   @Get('products/:slug')
+  @PublicCache()
   getOne(@Param('slug') slug: string, @Query('segment') segment?: string) {
     return this.catalog.getBySlug(slug, this.segment(segment));
   }

@@ -1,10 +1,21 @@
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { LeadSource } from '@voltstar/types';
 import { LeadForm } from '../../../components/lead-form';
+import type { Metadata } from 'next';
+import { pageMetadata } from '../../../lib/seo';
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const [t, seo] = await Promise.all([getTranslations({ locale, namespace: 'business' }), getTranslations({ locale, namespace: 'seo' })]);
+  return pageMetadata({ locale, path: '/business', title: t('title'), description: seo('business') });
+}
+
 
 export default async function BusinessPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
+  // Статичний рендер/ISR: мова з параметра маршруту, а не із заголовків запиту.
+  setRequestLocale(locale);
   const t = await getTranslations('business');
 
   return (

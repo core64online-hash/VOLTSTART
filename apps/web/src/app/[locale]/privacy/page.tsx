@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { pageMetadata } from '../../../lib/seo';
 import { policy } from './content';
 
 const legal = {
@@ -14,11 +16,14 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  return { title: `${policy(locale, legal).title} — VOLTSTAR` };
+  const seo = await getTranslations({ locale, namespace: 'seo' });
+  return pageMetadata({ locale, path: '/privacy', title: policy(locale, legal).title, description: seo('privacy') });
 }
 
 export default async function PrivacyPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
+  // Статичний рендер/ISR: мова з параметра маршруту, а не із заголовків запиту.
+  setRequestLocale(locale);
   const doc = policy(locale, legal);
   return (
     <main className="mx-auto max-w-3xl px-4 py-12">
