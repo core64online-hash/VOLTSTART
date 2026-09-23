@@ -351,10 +351,15 @@ export class CrmService {
         const previous = companyId
           ? await tx.deal.findFirst({ where: { companyId, ownerId: { not: null } }, orderBy: { createdAt: 'desc' } })
           : null;
+        // Статус міг змінитися, поки ми сюди дійшли (напр., рахунок уже звірено) — угода одразу закривається.
+        const current = await tx.order.findUnique({ where: { id: order.id }, select: { status: true } });
+        const closedStage = current ? dealStageForOrder(current.status) : null;
         const deal = await tx.deal.create({
           data: {
             title: `Замовлення ${order.number}`,
-            stage: 'PROPOSAL',
+            stage: closedStage ?? 'PROPOSAL',
+            closedAt: closedStage ? new Date() : null,
+            lostReason: closedStage === 'LOST' ? 'Замовлення скасовано до опрацювання' : null,
             amountMinor: order.totalMinor,
             currency: order.currency,
             orderId: order.id,
@@ -364,7 +369,11 @@ export class CrmService {
           },
         });
         await tx.activity.create({
-          data: { dealId: deal.id, type: 'system', content: `Оформлено замовлення ${order.number}, виставлено рахунок` },
+          data: {
+            dealId: deal.id,
+            type: 'system',
+            content: `Оформлено замовлення ${order.number}, виставлено рахунок${closedStage === 'WON' ? '; уже оплачено' : ''}`,
+          },
         });
       });
     });

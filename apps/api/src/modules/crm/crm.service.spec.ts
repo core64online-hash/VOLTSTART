@@ -14,6 +14,8 @@ function setup(state: {
   load?: { ownerId: string; _count: { _all: number } }[];
   order?: Record<string, unknown> | null;
   deal?: { id: string; stage: string } | null;
+  /** Статус замовлення на момент створення угоди (перечитується в транзакції). */
+  orderStatusNow?: string;
 } = {}) {
   const db = {
     lead: {
@@ -27,7 +29,11 @@ function setup(state: {
     },
     user: { findMany: vi.fn(async () => state.managers ?? []) },
     activity: { create: vi.fn(async () => ({ id: 'act' })) },
-    order: { findUnique: vi.fn(async () => state.order ?? null) },
+    order: {
+      findUnique: vi.fn(async ({ select }: { select?: unknown }) =>
+        select ? { status: state.orderStatusNow ?? 'INVOICED' } : state.order ?? null,
+      ),
+    },
     deal: {
       findFirst: vi.fn(async ({ where }: { where: Record<string, unknown> }) => ('order' in where ? state.deal ?? null : null)),
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({ id: 'deal-new', ...data })),
@@ -114,6 +120,14 @@ describe('CrmService — звʼязок із замовленнями', () => {
       contactId: 'contact-new',
       ownerId: 'm1',
     });
+  });
+
+  it('рахунок звірили раніше, ніж створилась угода → угода одразу «Виграна»', async () => {
+    const { crm, db } = setup({ order: b2bOrder, orderStatusNow: 'PAID' });
+    await crm.onOrderPlaced('VS-1');
+    expect(arg(db.deal.create).data).toMatchObject({ stage: 'WON', lostReason: null });
+    expect(arg(db.deal.create).data.closedAt).toBeInstanceOf(Date);
+    expect(arg(db.activity.create).data.content).toContain('уже оплачено');
   });
 
   it('B2C-замовлення і повторна обробка угоду не створюють', async () => {

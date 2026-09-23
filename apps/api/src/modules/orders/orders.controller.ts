@@ -21,6 +21,7 @@ import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../../common/auth/optional-jwt-auth.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 import { RolesGuard } from '../../common/auth/roles.guard';
+import { Audited } from '../../common/audit/audit.interceptor';
 import { DocumentsService } from '../documents/documents.service';
 import { OrdersService, type OrderViewer } from './orders.service';
 
@@ -54,6 +55,7 @@ export class OrdersController {
     return this.orders.listForStaff(
       ManageOrdersQuerySchema.parse({
         status: q.status ? String(q.status) : undefined,
+        q: q.q ? String(q.q) : undefined,
         page: q.page ? Number(q.page) : undefined,
         perPage: q.perPage ? Number(q.perPage) : undefined,
       }),
@@ -90,6 +92,7 @@ export class OrdersController {
   @Patch(':number/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.MANAGER, Role.ADMIN)
+  @Audited('order.status', 'Order', 'number')
   changeStatus(@Param('number') number: string, @Body() body: unknown, @CurrentUser() user: JwtPayload) {
     const { status, note } = ChangeOrderStatusSchema.parse(body);
     return this.orders.changeStatus(number, status, user.sub, note);

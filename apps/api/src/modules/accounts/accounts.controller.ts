@@ -13,6 +13,7 @@ import { CurrentUser } from '../../common/auth/current-user.decorator';
 import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 import { RolesGuard } from '../../common/auth/roles.guard';
+import { Audited } from '../../common/audit/audit.interceptor';
 
 @ApiTags('accounts')
 @Controller('accounts')
@@ -57,6 +58,7 @@ export class AccountsController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.MANAGER, Role.ADMIN)
+  @Audited('organization.verify', 'Organization', 'id')
   verifyOrganization(@Param('id') id: string) {
     return this.accounts.verifyOrganization(id);
   }

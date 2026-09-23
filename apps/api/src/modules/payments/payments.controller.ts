@@ -13,6 +13,7 @@ import { CurrentUser } from '../../common/auth/current-user.decorator';
 import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 import { RolesGuard } from '../../common/auth/roles.guard';
+import { Audited } from '../../common/audit/audit.interceptor';
 import { PaymentsService } from './payments.service';
 
 /** Мінімальний тип запиту: потрібні сирі байти тіла для перевірки підпису. */
@@ -54,6 +55,7 @@ export class PaymentsController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.MANAGER, Role.ADMIN)
+  @Audited('order.mark-paid', 'Order', 'number')
   markPaid(@Param('number') number: string, @CurrentUser() user: JwtPayload) {
     return this.payments.markInvoicePaid(number, user.sub);
   }

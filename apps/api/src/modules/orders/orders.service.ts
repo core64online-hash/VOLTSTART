@@ -5,6 +5,7 @@ import type {
   OrderDetail,
   OrderStatus,
   OrderSummary,
+  StaffOrderSummary,
   Role,
 } from '@voltstar/types';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -66,19 +67,37 @@ export class OrdersService {
   }
 
   /** Список для менеджера з фільтром за статусом. */
-  async listForStaff(query: ManageOrdersQuery): Promise<{ items: OrderSummary[]; total: number; page: number; perPage: number }> {
-    const where: Prisma.OrderWhereInput = query.status ? { status: query.status } : {};
+  async listForStaff(query: ManageOrdersQuery): Promise<{ items: StaffOrderSummary[]; total: number; page: number; perPage: number }> {
+    const where: Prisma.OrderWhereInput = {
+      ...(query.status ? { status: query.status } : {}),
+      ...(query.q
+        ? {
+            OR: [
+              { number: { contains: query.q, mode: 'insensitive' } },
+              { contactEmail: { contains: query.q, mode: 'insensitive' } },
+              { contactName: { contains: query.q, mode: 'insensitive' } },
+              { organization: { name: { contains: query.q, mode: 'insensitive' } } },
+            ],
+          }
+        : {}),
+    };
     const [rows, total] = await Promise.all([
       this.prisma.order.findMany({
         where,
-        include: { items: true },
+        include: { items: true, organization: { select: { name: true } } },
         orderBy: { createdAt: 'desc' },
         skip: (query.page - 1) * query.perPage,
         take: query.perPage,
       }),
       this.prisma.order.count({ where }),
     ]);
-    return { items: rows.map(toSummary), total, page: query.page, perPage: query.perPage };
+    const items = rows.map((o) => ({
+      ...toSummary(o),
+      contactName: o.contactName,
+      contactEmail: o.contactEmail,
+      organization: o.organization?.name ?? null,
+    }));
+    return { items, total, page: query.page, perPage: query.perPage };
   }
 
   async getDetail(number: string, viewer: OrderViewer): Promise<OrderDetail> {

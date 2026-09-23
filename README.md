@@ -63,6 +63,7 @@ pnpm dev
 - API → http://localhost:4000/api (Swagger: http://localhost:4000/docs)
 - Пошта (Mailhog UI) → http://localhost:8025
 - CRM менеджера → http://localhost:3000/uk/manager/crm (потрібна роль: `pnpm --filter @voltstar/api user:role <email> MANAGER`)
+- Адмін-панель → http://localhost:3000/uk/admin (менеджер: дашборд, замовлення, залишки; адміністратор — ще каталог, ціни, ролі, журнал: `user:role <email> ADMIN`)
 
 ## Команди
 
