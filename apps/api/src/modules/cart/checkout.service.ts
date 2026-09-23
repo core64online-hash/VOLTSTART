@@ -11,6 +11,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { logStatusChange } from '../orders/order-events';
 import { PaymentsService } from '../payments/payments.service';
+import { SearchService } from '../search/search.service';
 import type { BuyerContext } from './buyer-context';
 import { CartService } from './cart.service';
 import {
@@ -30,6 +31,7 @@ export class CheckoutService {
     private readonly carts: CartService,
     private readonly payments: PaymentsService,
     private readonly notifications: NotificationsService,
+    private readonly search: SearchService,
     config: ConfigService,
   ) {
     this.allowedOrigins = (config.get<string>('API_CORS_ORIGINS') ?? 'http://localhost:3000')
@@ -115,10 +117,13 @@ export class CheckoutService {
       });
     } catch (e) {
       await this.release(order, payment, cart.lines);
+      void this.search.syncProducts(cart.lines.map((l) => l.productId));
       throw e;
     }
 
     void this.notifications.orderPlaced(order.number);
+    // Резерв міг вичерпати склад — оновлюємо «в наявності» в пошуковому індексі.
+    void this.search.syncProducts(cart.lines.map((l) => l.productId));
 
     return {
       orderId: order.id,

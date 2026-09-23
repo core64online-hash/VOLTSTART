@@ -10,6 +10,7 @@ import type {
 import { PrismaService } from '../../prisma/prisma.service';
 import { availableDocuments } from '../documents/documents.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { SearchService } from '../search/search.service';
 import { logStatusChange } from './order-events';
 import { assertManualTransition, releasesStock } from './order-state';
 
@@ -48,6 +49,7 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly search: SearchService,
   ) {}
 
   /** Історія замовлень користувача (кабінет). */
@@ -98,12 +100,14 @@ export class OrdersService {
    * як повернених. Лист покупцю — після коміту.
    */
   async changeStatus(number: string, to: OrderStatus, actorId: string, note?: string): Promise<OrderDetail> {
+    let restockedIds: string[] = [];
     const updated = await this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({ where: { number }, include: { items: true } });
       if (!order) throw new NotFoundException('Замовлення не знайдено');
       assertManualTransition(order.status, to);
 
       if (releasesStock(order.status, to)) {
+        restockedIds = order.items.map((i) => i.productId);
         for (const item of order.items) {
           await tx.inventoryItem.updateMany({
             where: { productId: item.productId },
@@ -121,6 +125,7 @@ export class OrdersService {
     });
 
     void this.notifications.orderStatusChanged(number, to);
+    if (restockedIds.length) void this.search.syncProducts(restockedIds);
     return toDetail(updated);
   }
 }
