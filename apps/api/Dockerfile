@@ -16,6 +16,24 @@ RUN pnpm --filter @voltstar/api prisma:generate
 RUN pnpm --filter @voltstar/types build
 RUN pnpm --filter @voltstar/api build
 
+# ─── Runtime dependencies ──────────────────────────────────────
+# Лише залежності для запуску (без devDependencies: turbo, eslint, TypeScript, Nest CLI, vitest…).
+# prisma і tsx — у dependencies: образ виконує міграції та службові скрипти.
+FROM node:22-alpine AS deps
+WORKDIR /app
+RUN corepack enable
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY packages ./packages
+COPY apps/api/package.json ./apps/api/package.json
+COPY apps/api/prisma ./apps/api/prisma
+RUN pnpm install --frozen-lockfile --prod --filter @voltstar/api...
+RUN pnpm --filter @voltstar/api prisma:generate
+# WASM-рушії Prisma (edge-рантайми та інші СУБД) у Node не використовуються — ~60 МБ;
+# працює нативний рушій PostgreSQL (libquery_engine-*.so.node). Потім — перевірка, що клієнт вантажиться.
+RUN cd node_modules/.pnpm/@prisma+client@*/node_modules \
+ && rm -f @prisma/client/runtime/*.wasm-base64.* @prisma/client/runtime/*.wasm .prisma/client/query_engine_bg.wasm \
+ && cd /app/apps/api && node -e "new (require('@prisma/client').PrismaClient)()"
+
 # ─── Runtime stage ─────────────────────────────────────────────
 FROM node:22-alpine AS runtime
 WORKDIR /app
@@ -27,9 +45,11 @@ ENV NODE_ENV=production \
     APP_COMMIT=${APP_COMMIT}
 # libssl3 для рушія Prisma вже є в node:22-alpine.
 RUN addgroup -S app && adduser -S app -G app
-COPY --from=build --chown=app:app /app/node_modules ./node_modules
-COPY --from=build --chown=app:app /app/packages ./packages
-COPY --from=build --chown=app:app /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=deps --chown=app:app /app/node_modules ./node_modules
+COPY --from=deps --chown=app:app /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=deps --chown=app:app /app/packages ./packages
+# Зібраний @voltstar/types (dist/cjs) — з етапу build.
+COPY --from=build --chown=app:app /app/packages/types/dist ./packages/types/dist
 COPY --from=build --chown=app:app /app/apps/api/dist ./apps/api/dist
 COPY --from=build --chown=app:app /app/apps/api/prisma ./apps/api/prisma
 COPY --from=build --chown=app:app /app/apps/api/src ./apps/api/src
@@ -41,5 +61,5 @@ USER app
 WORKDIR /app/apps/api
 EXPOSE 4000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --start-interval=2s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:4000/api/health/ready >/dev/null || exit 1
+  CMD wget -qO- "http://127.0.0.1:${API_PORT:-4000}/api/health/ready" >/dev/null || exit 1
 CMD ["node", "dist/src/main.js"]

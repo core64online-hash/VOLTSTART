@@ -68,12 +68,18 @@ importers:
       pdfkit:
         specifier: ^0.20.2
         version: 0.20.2
+      prisma:
+        specifier: ^6.1.0
+        version: 6.19.3(typescript@5.9.3)
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
       rxjs:
         specifier: ^7.8.1
         version: 7.8.2
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.15
       zod:
         specifier: ^3.23.8
         version: 3.25.76
@@ -96,12 +102,6 @@ importers:
       '@voltstar/config':
         specifier: workspace:*
         version: link:../../packages/config
-      prisma:
-        specifier: ^6.1.0
-        version: 6.19.3(typescript@5.9.3)
-      tsx:
-        specifier: ^4.19.2
-        version: 4.23.15
       typescript:
         specifier: ^5.6.3
         version: 5.9.3
