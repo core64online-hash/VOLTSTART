@@ -27,16 +27,33 @@ API — під `/api` (без CORS; вебхуки оплат — `https://<до
    | Auto Deploy | **вимкнути** (деплой запускає workflow після зеленого CI) | **вимкнути** |
 
    Порт після домену — це порт контейнера, на який Traefik проксує `443` (формат Coolify). Для `api`
-   шлях `/api` не обрізається: API сам обслуговує маршрути з префіксом `/api`.
+   шлях `/api` **не** має обрізатися (API сам обслуговує маршрути з префіксом `/api`) — за замовчуванням
+   Coolify його обрізає, тому вимкніть *Strip prefixes* (п. 6).
 5. **Змінні середовища** ресурсу (*Environment Variables*) — за зразком [`deploy/.env.prod.example`](../deploy/.env.prod.example).
    Секрети генеруйте окремо для кожного середовища: `openssl rand -hex 32`.
    Обовʼязкові: `SITE_URL`, `POSTGRES_PASSWORD`, `JWT_SECRET`, `INTERNAL_API_TOKEN`, `TYPESENSE_API_KEY`.
    Для staging — **тестові** ключі оплат (sandbox), для production — бойові.
    `APP_VERSION` не задавайте: Coolify передає `SOURCE_COMMIT`, і версія = SHA коміту
    (її перевіряють smoke-тести після деплою).
-6. **API-токен** для GitHub Actions: Coolify → *Keys & Tokens* → *API tokens* → право `deploy`.
+   ⚠️ Coolify позначає «Required» лише частину змінних — `SITE_URL` і `POSTGRES_PASSWORD` теж обовʼязкові
+   (вони входять у довші рядки compose, тому Coolify їх не розпізнає). `SITE_URL` — з `https://`, без порту
+   й `/` у кінці, і з позначкою *Available during build* (сайт вшиває адресу під час збірки).
+   Без `openssl` (Windows PowerShell) секрет генерує:
+   `$b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [BitConverter]::ToString($b).Replace('-','').ToLower()`
+6. **Налаштування ресурсу**, без яких стек не працює як слід:
+
+   | Де | Параметр | Значення | Чому |
+   |---|---|---|---|
+   | General → Build pipeline | Preserve repository during deployment | **увімкнено** | сервіс `backup` запускає скрипти з репозиторію (`scripts/`, `deploy/`) |
+   | Advanced → Build | Source commit availability | **Available during build** | SHA коміту = версія образів; за нею smoke-тести перевіряють деплой |
+   | Advanced → Build | Build arguments | **Managed manually in Dockerfile** | аргументи збірки вже задано в compose; інакше Coolify передає у збірку всі змінні, зокрема секрети |
+   | Advanced → Deployment | Auto deploy | **Manual deployments only** | деплой запускає workflow після зеленого CI |
+   | Advanced → Proxy | Strip prefixes | **вимкнено** | інакше Traefik обрізає `/api`, і API відповідає 404 на всі запити |
+   | Domains | `web` / `api` | той самий домен, порти `3000` / `4000`, шлях `/api` для `api` | сайт і API на одному домені |
+
+7. **API-токен** для GitHub Actions: Coolify → *Keys & Tokens* → *API tokens* → право `deploy`.
    UUID ресурсів — з адреси сторінки ресурсу в Coolify.
-7. **Сповіщення Coolify** (Telegram/email) про збої деплою й перезапуски контейнерів — *Notifications*.
+8. **Сповіщення Coolify** (Telegram/email) про збої деплою й перезапуски контейнерів — *Notifications*.
 
 ## 2. Налаштування GitHub
 
