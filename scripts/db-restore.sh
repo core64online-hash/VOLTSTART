@@ -9,7 +9,11 @@ FILE="${1:?Вкажіть файл резервної копії}"
 URL="${TARGET_DATABASE_URL%%\?*}"
 
 if [[ -f "$FILE.sha256" ]]; then
-  sha256sum --check --status "$FILE.sha256" || { echo "❌ Контрольна сума не збігається: $FILE"; exit 1; }
+  # Звіряємо лише хеш: у .sha256 записано шлях на момент копії (/backups/…), а файл може
+  # лежати деінде — напр. завантажений із зовнішнього сховища в /backups/restore/.
+  expected="$(cut -d' ' -f1 "$FILE.sha256")"
+  actual="$(sha256sum "$FILE" | cut -d' ' -f1)"
+  [[ "$expected" == "$actual" ]] || { echo "❌ Контрольна сума не збігається: $FILE"; exit 1; }
 fi
 pg_restore --clean --if-exists --no-owner --no-privileges --exit-on-error --dbname="$URL" "$FILE"
 echo "✅ Відновлено $FILE → ${URL##*@}"

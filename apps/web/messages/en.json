@@ -584,5 +584,11 @@
   },
   "a11y": {
     "skipToContent": "Skip to main content"
+  },
+  "errorPage": {
+    "title": "Something went wrong",
+    "text": "We couldn't display this page. The error has been reported. Please try again or go back to the home page.",
+    "retry": "Try again",
+    "home": "Home page"
   }
 }

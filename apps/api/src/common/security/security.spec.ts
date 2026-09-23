@@ -105,6 +105,7 @@ describe('checkEnv', () => {
     SMTP_HOST: 'smtp',
     TRUST_PROXY: '1',
     METRICS_TOKEN: 'm'.repeat(32),
+    SENTRY_DSN: 'https://key@o1.ingest.sentry.io/1',
     INTERNAL_API_TOKEN: 'i'.repeat(32),
   };
 

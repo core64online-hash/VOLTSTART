@@ -59,8 +59,12 @@ async function main() {
     { label: 'Насос свердловинний', powerW: 1100, loadType: 'MOTOR', category: 'Інженерія' },
     { label: 'Комп’ютер', powerW: 400, loadType: 'ELECTRONIC', category: 'Офіс' },
   ];
+  // Повторний запуск seed не дублює пресети (унікального ключа в таблиці немає — звіряємо за назвою).
+  const existing = new Set(
+    (await prisma.equipmentPreset.findMany({ select: { label: true } })).map((r) => r.label),
+  );
   for (const p of presets) {
-    await prisma.equipmentPreset.create({ data: p });
+    if (!existing.has(p.label)) await prisma.equipmentPreset.create({ data: p });
   }
 
   console.log('Seed завершено ✅');

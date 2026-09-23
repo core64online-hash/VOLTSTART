@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { initErrorReporting } from './common/observability/error-reporting';
 import { metricsMiddleware } from './common/observability/metrics';
 import { checkEnv, trustProxySetting } from './common/security/env-check';
 import { securityHeaders } from './common/security/security-headers';
@@ -11,6 +12,7 @@ import { securityHeaders } from './common/security/security-headers';
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const prod = process.env.NODE_ENV === 'production';
+  if (initErrorReporting()) logger.log('Звіти про помилки: Sentry увімкнено');
   const env = checkEnv(process.env);
   env.warnings.forEach((w) => logger.warn(w));
   if (env.errors.length) {

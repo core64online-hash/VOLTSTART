@@ -11,6 +11,8 @@
     "test": "echo \"no unit tests for @voltstar/web yet\" && exit 0"
   },
   "dependencies": {
+    "@sentry/browser": "^10.75.2",
+    "@sentry/node": "^10.75.2",
     "@voltstar/types": "workspace:*",
     "@voltstar/ui": "workspace:*",
     "next": "^15.1.2",

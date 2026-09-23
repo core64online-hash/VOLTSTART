@@ -48,6 +48,8 @@ x-api-env: &api-env
   INVOICE_RECIPIENT_EDRPOU: ${INVOICE_RECIPIENT_EDRPOU:-}
   INVOICE_RECIPIENT_ADDRESS: ${INVOICE_RECIPIENT_ADDRESS:-}
   APP_VERSION: ${SOURCE_COMMIT:-dev}
+  SENTRY_DSN: ${SENTRY_DSN:-}
+  SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
 
 x-api-build: &api-build
   context: .
@@ -116,6 +118,8 @@ services:
         NEXT_PUBLIC_LEGAL_NAME: ${LEGAL_NAME:-ТОВ «ВОЛЬТСТАР»}
         NEXT_PUBLIC_LEGAL_EDRPOU: ${LEGAL_EDRPOU:-}
         NEXT_PUBLIC_PRIVACY_EMAIL: ${PRIVACY_EMAIL:-privacy@voltstar.ua}
+        NEXT_PUBLIC_SENTRY_DSN: ${SENTRY_DSN:-}
+        NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
         APP_VERSION: ${SOURCE_COMMIT:-dev}
     image: voltstar-web:${SOURCE_COMMIT:-dev}
     restart: unless-stopped
@@ -123,6 +127,9 @@ services:
       # SSR ходить до API внутрішньою мережею, позначаючи запити спільним секретом.
       API_INTERNAL_URL: http://api:4000
       INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+      APP_VERSION: ${SOURCE_COMMIT:-dev}
     expose:
       - "3000"
     depends_on:
@@ -146,6 +153,29 @@ services:
       # Перша копія — лише після міграцій (інакше зберігається порожня схема).
       migrate:
         condition: service_completed_successfully
+
+  # Копії бекапів поза сервером (S3/R2/B2) — вимкнено, доки не задано OFFSITE_S3_BUCKET.
+  offsite:
+    image: rclone/rclone:1.71
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/deploy/offsite-loop.sh"]
+    environment:
+      OFFSITE_S3_BUCKET: ${OFFSITE_S3_BUCKET:-}
+      OFFSITE_S3_PREFIX: ${OFFSITE_S3_PREFIX:-voltstar}
+      OFFSITE_S3_PROVIDER: ${OFFSITE_S3_PROVIDER:-Other}
+      OFFSITE_S3_ENDPOINT: ${OFFSITE_S3_ENDPOINT:-}
+      OFFSITE_S3_REGION: ${OFFSITE_S3_REGION:-auto}
+      OFFSITE_S3_ACCESS_KEY_ID: ${OFFSITE_S3_ACCESS_KEY_ID:-}
+      OFFSITE_S3_SECRET_ACCESS_KEY: ${OFFSITE_S3_SECRET_ACCESS_KEY:-}
+      OFFSITE_CRYPT_PASSWORD: ${OFFSITE_CRYPT_PASSWORD:-}
+      OFFSITE_KEEP_DAYS: ${OFFSITE_KEEP_DAYS:-30}
+      OFFSITE_INTERVAL_SEC: ${OFFSITE_INTERVAL_SEC:-3600}
+    volumes:
+      # Запис — лише для відновлення: `fetch` завантажує копію в /backups/restore/ (див. RUNBOOK).
+      - backups:/backups
+      - ./deploy:/deploy:ro
+    depends_on:
+      - backup
 
   # Очищення персональних даних за строками зберігання — щодня.
   retention:

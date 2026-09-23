@@ -5,6 +5,8 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 const isDev = process.env.NODE_ENV !== 'production';
 const apiOrigin = new URL(process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000').origin;
+// Звіти про помилки браузера (Sentry) — дозволяємо запити лише на хост із DSN.
+const sentryOrigin = process.env.NEXT_PUBLIC_SENTRY_DSN ? new URL(process.env.NEXT_PUBLIC_SENTRY_DSN).origin : '';
 
 /**
  * Content-Security-Policy. Next.js вбудовує inline-скрипти гідрації, тож без nonce-режиму
@@ -18,7 +20,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https:",
   "font-src 'self' data:",
-  `connect-src 'self' ${apiOrigin}${isDev ? ' ws:' : ''}`,
+  `connect-src 'self' ${apiOrigin}${sentryOrigin ? ` ${sentryOrigin}` : ''}${isDev ? ' ws:' : ''}`,
   "form-action 'self' https://secure.wayforpay.com https://www.liqpay.ua",
   "frame-ancestors 'none'",
   "object-src 'none'",
@@ -48,6 +50,8 @@ const nextConfig = {
   // інакше їх не бачать прев'ю посилань у месенджерах і частина пошукових роботів.
   htmlLimitedBots: /.*/,
   transpilePackages: ['@voltstar/ui', '@voltstar/types'],
+  // Серверний SDK Sentry — як звичайний пакет Node, без бандлінгу (інакше попередження збірки й зайвий розмір).
+  serverExternalPackages: ['@sentry/node'],
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },

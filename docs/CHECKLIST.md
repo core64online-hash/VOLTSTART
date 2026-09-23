@@ -100,6 +100,11 @@
 - [x] Моніторинг: readiness `/api/health/ready`, метрики Prometheus `/api/metrics` (за токеном)
 - [x] Бекапи БД за розкладом + перевірка відновлення (локально на prod-стеку); runbook відкату й відновлення — `docs/RUNBOOK.md`
 - [x] Prod-стек перевірено локально: TLS, smoke 16/16, справжній Typesense (пошук з опечатками), SSR під навантаженням, UI через reverse-proxy
-- [ ] Налаштувати ресурси в Coolify, DNS, GitHub Environments/Secrets (див. RUNBOOK) і перший деплой staging → production
-- [ ] Копії бекапів поза сервером (S3/R2 через rclone/restic), Sentry, дашборди Grafana й алерти
+- [x] Налаштувати ресурси в Coolify, DNS і перший деплой staging і production (див. RUNBOOK)
+- [x] Staging і production у Coolify: автодеплой staging після зеленого CI, smoke-тести (зокрема вхід із браузера й CSP) і перевірка без деплою (`smoke_only`)
+- [x] Node 22 LTS в образах і CI; образ API 1,04 ГБ → 736 МБ (лише залежності для запуску)
+- [x] Копії бекапів поза сервером (сервіс `offsite`, rclone → S3/R2/B2, шифрування, строк зберігання) і відновлення з них (`list` / `fetch`) — вмикається змінними `OFFSITE_*`
+- [x] Звіти про помилки API, серверного рендеру й браузера (Sentry-сумісні, без персональних даних) — вмикається `SENTRY_DSN`
+- [ ] Увімкнути на production: бакет і ключі `OFFSITE_*`, `SENTRY_DSN`; environment `production` і `PRODUCTION_URL` у GitHub
+- [ ] Дашборди Grafana й алерти за метриками `/api/metrics`
 - [ ] Запуск 🚀 + пост-реліз спостереження (2 тижні)

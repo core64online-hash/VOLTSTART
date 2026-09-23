@@ -4,6 +4,7 @@ import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server
 import { notFound } from 'next/navigation';
 import { routing, type Locale } from '../../i18n/routing';
 import { CookieBanner } from '../../components/cookie-banner';
+import { ErrorReporter } from '../../components/error-reporter';
 import { SiteFooter } from '../../components/site-footer';
 import { SITE_NAME, SITE_URL } from '../../lib/seo';
 import '../globals.css';
@@ -59,6 +60,7 @@ export default async function LocaleLayout({
           </div>
           <SiteFooter />
           <CookieBanner />
+          <ErrorReporter />
         </NextIntlClientProvider>
       </body>
     </html>

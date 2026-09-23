@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ZodExceptionFilter } from './common/filters/zod-exception.filter';
+import { ErrorReportingInterceptor } from './common/observability/error-reporting';
 import { RateLimitGuard } from './common/security/rate-limit';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
@@ -40,6 +41,8 @@ import { AdminModule } from './modules/admin/admin.module';
     { provide: APP_FILTER, useClass: ZodExceptionFilter },
     // Глобально: ліміти частоти запитів (загальний + точкові на вхід, заявки, оформлення).
     { provide: APP_GUARD, useClass: RateLimitGuard },
+    // Глобально: збої (5xx) — у Sentry, якщо задано SENTRY_DSN.
+    { provide: APP_INTERCEPTOR, useClass: ErrorReportingInterceptor },
   ],
 })
 export class AppModule {}
