@@ -48,6 +48,6 @@ COPY --from=build --chown=app:app /app/apps/web/.next/standalone ./
 COPY --from=build --chown=app:app /app/apps/web/.next/static ./apps/web/.next/static
 USER app
 EXPOSE 3000
-HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --start-interval=2s --retries=3 \
   CMD wget -qO- http://127.0.0.1:3000/uk >/dev/null || exit 1
 CMD ["node", "apps/web/server.js"]

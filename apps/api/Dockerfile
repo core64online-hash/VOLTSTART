@@ -40,6 +40,6 @@ COPY --from=build --chown=app:app /app/apps/api/package.json ./apps/api/package.
 USER app
 WORKDIR /app/apps/api
 EXPOSE 4000
-HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --start-interval=2s --retries=3 \
   CMD wget -qO- http://127.0.0.1:4000/api/health/ready >/dev/null || exit 1
 CMD ["node", "dist/src/main.js"]

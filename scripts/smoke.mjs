@@ -26,15 +26,18 @@ const check = (name, ok, detail = '') => {
 };
 const get = (path, init) => fetch(BASE + path, { redirect: 'manual', ...init });
 
-// 1. Чекаємо готовності (після деплою контейнери стартують кілька секунд).
+// 1. Чекаємо готовності API **і сайту**: web стартує після API, а reverse-proxy (Traefik у Coolify)
+//    пускає на контейнер лише після його першого успішного healthcheck — до того сайт віддає 404.
 let ready = null;
+let siteUp = false;
 for (let i = 0; i < Number(opts.retries); i++) {
   try {
-    const r = await get('/api/health/ready');
-    if (r.ok) {
-      ready = await r.json();
-      break;
+    if (!ready) {
+      const r = await get('/api/health/ready');
+      if (r.ok) ready = await r.json();
     }
+    if (ready && !siteUp) siteUp = (await get('/uk')).status === 200;
+    if (ready && siteUp) break;
   } catch {
     /* ще не піднявся */
   }
