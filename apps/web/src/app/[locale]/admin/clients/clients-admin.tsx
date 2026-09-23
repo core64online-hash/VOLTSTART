@@ -184,7 +184,7 @@ function UsersTable() {
                       <>
                         {u.organization.name}
                         {!u.organization.verified && (
-                          <span className="ml-1 text-xs text-amber-600">({t('notVerified')})</span>
+                          <span className="ml-1 text-xs text-amber-700">({t('notVerified')})</span>
                         )}
                       </>
                     ) : (

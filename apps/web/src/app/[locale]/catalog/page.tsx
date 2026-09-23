@@ -1,12 +1,21 @@
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { FuelType, PhaseType, type CatalogFacets, type Product } from '@voltstar/types';
 import { fetchFacets, fetchProducts, formatPrice } from '../../../lib/api';
+import type { Metadata } from 'next';
+import { pageMetadata } from '../../../lib/seo';
 
 export const dynamic = 'force-dynamic';
 
 type SearchParams = Record<string, string | string[] | undefined>;
 const str = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const [t, seo] = await Promise.all([getTranslations({ locale, namespace: 'catalog' }), getTranslations({ locale, namespace: 'seo' })]);
+  return pageMetadata({ locale, path: '/catalog', title: t('title'), description: seo('catalog') });
+}
+
 
 export default async function CatalogPage({
   params,
@@ -16,6 +25,8 @@ export default async function CatalogPage({
   searchParams: Promise<SearchParams>;
 }) {
   const { locale } = await params;
+  // Статичний рендер/ISR: мова з параметра маршруту, а не із заголовків запиту.
+  setRequestLocale(locale);
   const sp = await searchParams;
   const t = await getTranslations('catalog');
 
@@ -58,9 +69,10 @@ export default async function CatalogPage({
           name="q"
           defaultValue={filters.q ?? ''}
           placeholder={t('filters.search')}
+          aria-label={t('filters.search')}
           className="rounded border px-2 py-1 lg:col-span-2"
         />
-        <select name="brand" defaultValue={filters.brand ?? ''} className="rounded border px-2 py-1">
+        <select name="brand" aria-label={t('filters.brand')} defaultValue={filters.brand ?? ''} className="rounded border px-2 py-1">
           <option value="">{t('filters.brand')}: {t('filters.all')}</option>
           {facets.brands.map((b) => (
             <option key={b.slug} value={b.slug}>
@@ -68,7 +80,7 @@ export default async function CatalogPage({
             </option>
           ))}
         </select>
-        <select name="fuel" defaultValue={filters.fuel ?? ''} className="rounded border px-2 py-1">
+        <select name="fuel" aria-label={t('filters.fuel')} defaultValue={filters.fuel ?? ''} className="rounded border px-2 py-1">
           <option value="">{t('filters.fuel')}: {t('filters.all')}</option>
           {fuelOptions.map((f) => (
             <option key={f} value={f}>
@@ -76,7 +88,7 @@ export default async function CatalogPage({
             </option>
           ))}
         </select>
-        <select name="phase" defaultValue={filters.phase ?? ''} className="rounded border px-2 py-1">
+        <select name="phase" aria-label={t('filters.phase')} defaultValue={filters.phase ?? ''} className="rounded border px-2 py-1">
           <option value="">{t('filters.phase')}: {t('filters.all')}</option>
           {Object.values(PhaseType).map((p) => (
             <option key={p} value={p}>
@@ -112,7 +124,7 @@ export default async function CatalogPage({
                 href={`/${locale}/catalog/${p.slug}`}
                 className="flex flex-col rounded-xl border border-neutral-200 p-5 transition-shadow hover:shadow-md"
               >
-                <span className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                <span className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
                   {p.brand}
                 </span>
                 <span className="mt-1 text-lg font-semibold">{p.name}</span>
@@ -121,9 +133,9 @@ export default async function CatalogPage({
                 </span>
                 <span className="mt-3 text-sm">
                   {p.inStock ? (
-                    <span className="text-green-600">{t('inStock')}</span>
+                    <span className="text-green-700">{t('inStock')}</span>
                   ) : (
-                    <span className="text-neutral-400">{t('outOfStock')}</span>
+                    <span className="text-neutral-500">{t('outOfStock')}</span>
                   )}
                 </span>
                 {price && (

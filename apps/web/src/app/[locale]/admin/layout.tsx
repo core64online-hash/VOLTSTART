@@ -1,6 +1,9 @@
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { AdminShell } from './admin-shell';
+import { NO_INDEX } from '../../../lib/seo';
+
+export const metadata = NO_INDEX;
 
 export default async function AdminLayout({
   children,
@@ -10,6 +13,8 @@ export default async function AdminLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  // Статичний рендер/ISR: мова з параметра маршруту, а не із заголовків запиту.
+  setRequestLocale(locale);
   const t = await getTranslations('admin');
   return (
     <main className="mx-auto max-w-7xl px-4 py-10">

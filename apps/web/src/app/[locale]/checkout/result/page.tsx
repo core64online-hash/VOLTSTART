@@ -1,7 +1,12 @@
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ResultView } from './result-view';
+import { NO_INDEX } from '../../../../lib/seo';
 
-export default async function CheckoutResultPage() {
+/** Службова сторінка — не для пошукових систем. */
+export const metadata = NO_INDEX;
+
+export default async function CheckoutResultPage({ params }: { params: Promise<{ locale: string }> }) {
+  setRequestLocale((await params).locale);
   const t = await getTranslations('cart.result');
 
   return (

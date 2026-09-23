@@ -91,6 +91,15 @@ pnpm --filter @voltstar/api data:retention
 
 У production API не стартує з небезпечною конфігурацією (дефолтний `JWT_SECRET`, http-адреси, `*` у CORS, `LIQPAY_SANDBOX=true`) — див. лог запуску. За балансувальником задайте `TRUST_PROXY`, щоб ліміти запитів рахувались за IP клієнта.
 
+## Навантажувальний тест
+
+```bash
+# API й web мають бути запущені; для стенду з лімітами запитів — RATE_LIMIT_DISABLED=true
+node scripts/load-test.mjs --api http://localhost:4000 --web http://localhost:3000 --duration 30 --concurrency 10
+```
+
+Виводить RPS і p50/p95/p99 для кожного сценарію; код виходу ≠ 0, якщо не виконано поріг p95 або помилок ≥ 1%.
+
 ## Документація
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — системна архітектура

@@ -39,6 +39,9 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Метадані (title, description, canonical, OG) — завжди в <head>, а не стрімом у <body>:
+  // інакше їх не бачать прев'ю посилань у месенджерах і частина пошукових роботів.
+  htmlLimitedBots: /.*/,
   transpilePackages: ['@voltstar/ui', '@voltstar/types'],
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];

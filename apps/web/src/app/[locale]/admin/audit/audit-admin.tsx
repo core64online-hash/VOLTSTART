@@ -94,7 +94,7 @@ export function AuditAdmin() {
                         ? t(`actions.${actionKey(a.action)}`)
                         : a.action}
                     </p>
-                    <p className="font-mono text-xs text-neutral-400">{a.action}</p>
+                    <p className="font-mono text-xs text-neutral-500">{a.action}</p>
                   </td>
                   <td className="px-3 py-2">
                     <p>{t.has(`entities.${a.entity}`) ? t(`entities.${a.entity}`) : a.entity}</p>

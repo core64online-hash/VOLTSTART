@@ -1,9 +1,15 @@
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { CartView } from './cart-view';
+import { NO_INDEX } from '../../../lib/seo';
+
+/** Службова сторінка — не для пошукових систем. */
+export const metadata = NO_INDEX;
 
 export default async function CartPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
+  // Статичний рендер/ISR: мова з параметра маршруту, а не із заголовків запиту.
+  setRequestLocale(locale);
   const t = await getTranslations('cart');
 
   return (

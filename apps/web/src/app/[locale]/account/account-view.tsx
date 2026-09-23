@@ -102,7 +102,7 @@ export function AccountView() {
             )}
             <div className={row}>
               <dt className="text-neutral-500">{t('profile.verified')}</dt>
-              <dd className={user.organization.verified ? 'font-medium text-green-600' : 'font-medium text-amber-600'}>
+              <dd className={user.organization.verified ? 'font-medium text-green-700' : 'font-medium text-amber-700'}>
                 {user.organization.verified ? t('profile.verifiedYes') : t('profile.verifiedNo')}
               </dd>
             </div>

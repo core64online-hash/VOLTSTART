@@ -436,7 +436,7 @@ function DealPanel({
         <button
           onClick={onClose}
           aria-label={t('deal.close')}
-          className="text-neutral-400 hover:text-black"
+          className="text-neutral-500 hover:text-black"
         >
           ✕
         </button>
@@ -676,7 +676,7 @@ function TaskItem({
         }}
       />
       <div>
-        <p className={done ? 'text-neutral-400 line-through' : ''}>{task.title}</p>
+        <p className={done ? 'text-neutral-500 line-through' : ''}>{task.title}</p>
         <p className="text-xs text-neutral-500">
           {task.dueAt && (
             <span className={task.overdue ? 'font-medium text-red-600' : ''}>

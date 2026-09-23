@@ -79,6 +79,8 @@
     "from": "from",
     "details": "Details",
     "backToCatalog": "← Back to catalog",
+    "maxPower": "Peak power",
+    "breadcrumbs": "Breadcrumbs",
     "specs": "Specifications",
     "notFound": "Product not found.",
     "filters": {
@@ -571,5 +573,16 @@
     "registerNotice": "By registering you agree to data processing under the",
     "policyLink": "Privacy policy",
     "accountDeleted": "Your account has been deleted. Thank you for being with us."
+  },
+  "seo": {
+    "catalog": "Generator catalog: petrol, diesel, gas and inverter. Filter by power, phases and brand, with current prices and stock.",
+    "selector": "Free online generator sizing that accounts for starting currents and reserve — for homes, cottages and businesses.",
+    "business": "Generators for business and the public sector: wholesale prices, VAT invoices, documents and Prozorro tender support.",
+    "product": "{name} ({brand}) — {power} kW, {fuel}, {phase}. {price}Buy online from VOLTSTAR with delivery across Ukraine.",
+    "price": "Price {price}. ",
+    "privacy": "How VOLTSTAR processes personal data: purposes, retention periods, your rights and contacts."
+  },
+  "a11y": {
+    "skipToContent": "Skip to main content"
   }
 }
