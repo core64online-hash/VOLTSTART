@@ -68,3 +68,12 @@ jobs:
           POSTGRES_PASSWORD=x JWT_SECRET=x INTERNAL_API_TOKEN=x TYPESENSE_API_KEY=x SITE_URL=https://voltstar.example \
             docker compose -f docker-compose.prod.yml config --quiet
 
+      # Власні образи ніде не публікуються — кожен сервіс, що їх використовує, мусить мати `build`,
+      # інакше `compose pull --ignore-buildable` (Coolify, перед деплоєм) шукає їх у Docker Hub.
+      - name: Own images are buildable
+        run: |
+          POSTGRES_PASSWORD=x JWT_SECRET=x INTERNAL_API_TOKEN=x TYPESENSE_API_KEY=x SITE_URL=https://voltstar.example \
+            docker compose -f docker-compose.prod.yml config --format json \
+            | jq -e '[.services | to_entries[] | select((.value.image // "") | startswith("voltstar-")) | select(.value.build == null) | .key]
+                     | if length > 0 then error("без build: \(join(", "))") else true end'
+
